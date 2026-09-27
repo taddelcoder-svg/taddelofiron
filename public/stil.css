@@ -1,0 +1,63 @@
+:root{
+  --chrom:#1b1f24; --chrom2:#262c33; --rand:#3a424c; --papier:#ece4cf; --leise:#a9b0b8; --akzent:#c9a24a; --rot:#b3261e;
+  --schrift:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"Courier New",Courier,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--chrom);color:var(--papier);font:15px/1.45 var(--schrift);
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#karte{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#karte:active{cursor:grabbing}
+button{font:inherit;color:inherit;background:var(--chrom2);border:1px solid var(--rand);border-radius:8px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:#5b6572}
+button.haupt{background:var(--akzent);border-color:var(--akzent);color:#1b1a14;font-weight:600}
+
+#leiste{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:14px;
+  padding:8px max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));
+  background:rgba(27,31,36,.92);border-bottom:1px solid var(--rand);backdrop-filter:blur(6px);z-index:5}
+.marke{font-family:var(--mono);font-weight:700;letter-spacing:.28em;color:var(--akzent)}
+.datum{font-family:var(--mono);font-size:14px;padding:3px 10px;border:1px solid var(--rand);border-radius:6px;background:#15181c}
+.spieler{font-size:14px;color:var(--leise);display:flex;align-items:center;gap:6px}
+.spieler .flagge{width:14px;height:14px}
+.luecke{flex:1}
+.umschalter{display:flex;border:1px solid var(--rand);border-radius:8px;overflow:hidden}
+.umschalter button{border:0;border-radius:0;background:transparent;padding:6px 12px;color:var(--leise)}
+.umschalter button.an{background:var(--papier);color:#1b1a14}
+.rund{width:34px;height:34px;padding:0;border-radius:50%}
+
+#tipp{position:fixed;pointer-events:none;z-index:6;background:rgba(20,22,26,.92);border:1px solid var(--rand);border-radius:6px;
+  padding:4px 9px;font-size:13px;white-space:nowrap}
+#tipp .klein{color:var(--leise)}
+
+#panel{position:fixed;right:12px;top:62px;width:300px;max-width:calc(100% - 24px);z-index:5;background:rgba(27,31,36,.96);
+  border:1px solid var(--rand);border-radius:12px;padding:16px 16px 14px}
+.panel-kopf{display:flex;gap:12px;align-items:center;padding-right:26px}
+.flagge{display:inline-block;width:34px;height:24px;border-radius:3px;border:1px solid rgba(0,0,0,.5);flex:none}
+.klein{font-size:12.5px;color:var(--leise)}
+#panel h2{margin:0;font-size:19px;line-height:1.2}
+.schliessen{position:absolute;top:10px;right:10px;width:30px;height:30px;padding:0;border-radius:50%;background:transparent;border-color:transparent;font-size:20px;color:var(--leise)}
+.werte{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:14px 0}
+.werte dt{color:var(--leise);font-size:13.5px}
+.werte dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.knoepfe{display:flex;flex-wrap:wrap;gap:8px}
+.knoepfe button{flex:1 1 auto}
+
+#hilfe{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+#hilfe[hidden],#panel[hidden],#tipp[hidden]{display:none}
+.hilfe-karte{background:var(--chrom);border:1px solid var(--rand);border-radius:14px;padding:20px 22px;max-width:440px}
+.hilfe-karte h2{margin:0 0 10px;font-family:var(--mono);letter-spacing:.1em}
+.hilfe-karte ul{padding-left:18px;margin:0 0 12px}
+.hilfe-karte li{margin:4px 0}
+
+#laden{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);z-index:20;background:var(--chrom)}
+#laden.weg{display:none}
+#dsLink{position:fixed;left:10px;bottom:8px;font-size:12px;color:var(--leise);z-index:4;text-shadow:0 0 3px #000}
+
+@media (max-width:700px){
+  #leiste{gap:8px;flex-wrap:wrap}
+  .marke{display:none}
+  .spieler{order:5;width:100%}
+  .spieler:empty{display:none}
+  .umschalter button{padding:6px 9px}
+  #panel{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-width:none;padding-bottom:max(14px,env(safe-area-inset-bottom))}
+  #dsLink{bottom:auto;top:auto}
+}

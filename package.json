@@ -1,0 +1,17 @@
+{
+  "name": "epochen",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Epochen – Grand-Strategy im Browser",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "karte": "node werkzeug/provinzen-bauen.js"
+  },
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "d3-delaunay": "^6.0.4",
+    "mapshaper": "^0.7.68",
+    "polygon-clipping": "^0.15.7"
+  }
+}

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1b1f24">
+<title>Epochen</title>
+<link rel="stylesheet" href="stil.css">
+</head>
+<body>
+<canvas id="karte" aria-label="Weltkarte"></canvas>
+
+<header id="leiste">
+  <div class="marke">EPOCHEN</div>
+  <div class="datum" id="datum">1. Januar 1936</div>
+  <div class="spieler" id="spieler"></div>
+  <div class="luecke"></div>
+  <div class="umschalter" role="group" aria-label="Kartenstil">
+    <button data-stil="generalstab" class="an">Generalstab</button>
+    <button data-stil="flach">Lesbar</button>
+  </div>
+  <button id="hilfeKnopf" class="rund" aria-label="Steuerung">?</button>
+</header>
+
+<div id="tipp" hidden></div>
+
+<aside id="panel" hidden>
+  <button class="schliessen" id="panelZu" aria-label="Schließen">×</button>
+  <div class="panel-kopf">
+    <span class="flagge" id="pFarbe"></span>
+    <div>
+      <div class="klein" id="pStaat"></div>
+      <h2 id="pName"></h2>
+    </div>
+  </div>
+  <dl class="werte">
+    <dt>Fläche</dt><dd id="pFlaeche"></dd>
+    <dt>Nachbarprovinzen</dt><dd id="pNachbarn"></dd>
+    <dt>Provinzen des Staates</dt><dd id="pAnzahl"></dd>
+    <dt>Hauptstadt</dt><dd id="pHaupt"></dd>
+  </dl>
+  <div class="knoepfe">
+    <button id="pSpielen" class="haupt"></button>
+    <button id="pHaupt2">Zur Hauptstadt</button>
+  </div>
+</aside>
+
+<div id="hilfe" hidden>
+  <div class="hilfe-karte">
+    <h2>Steuerung</h2>
+    <ul>
+      <li><b>Verschieben:</b> Karte ziehen oder W A S D / Pfeiltasten</li>
+      <li><b>Zoomen:</b> Mausrad, Trackpad, zwei Finger oder + / −</li>
+      <li><b>Provinz ansehen:</b> antippen oder anklicken</li>
+      <li><b>Kartenstil:</b> oben rechts zwischen Generalstab und Lesbar wechseln</li>
+    </ul>
+    <p class="klein">Prototyp, Schritt 1: Weltkarte mit den Grenzen vom 1. Januar 1936. Einheiten, Wirtschaft und Kampf folgen.</p>
+    <button id="hilfeZu" class="haupt">Verstanden</button>
+  </div>
+</div>
+
+<div id="laden">Karte wird geladen …</div>
+<a id="dsLink" href="/datenschutz">Datenschutz</a>
+
+<script src="karte.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
