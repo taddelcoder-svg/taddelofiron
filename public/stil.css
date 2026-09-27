@@ -15,10 +15,18 @@ button.haupt{background:var(--akzent);border-color:var(--akzent);color:#1b1a14;f
   padding:8px max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));
   background:rgba(27,31,36,.92);border-bottom:1px solid var(--rand);backdrop-filter:blur(6px);z-index:5}
 .marke{font-family:var(--mono);font-weight:700;letter-spacing:.28em;color:var(--akzent)}
+.zeit{display:flex;align-items:center;gap:6px}
+.zeitknopf{width:34px;height:30px;padding:0;font-size:14px}
+.zeitknopf.laeuft{background:var(--akzent);color:#1b1a14;border-color:var(--akzent)}
+.tempo{display:flex;border:1px solid var(--rand);border-radius:8px;overflow:hidden}
+.tempo button{border:0;border-radius:0;background:transparent;padding:4px 9px;color:var(--leise);font-family:var(--mono)}
+.tempo button.an{background:var(--papier);color:#1b1a14}
 .datum{font-family:var(--mono);font-size:14px;padding:3px 10px;border:1px solid var(--rand);border-radius:6px;background:#15181c}
 .spieler{font-size:14px;color:var(--leise);display:flex;align-items:center;gap:6px}
 .spieler .flagge{width:14px;height:14px}
 .luecke{flex:1}
+.auto{font-size:13px;color:var(--leise);display:flex;align-items:center;gap:5px;cursor:pointer}
+.auto[hidden]{display:none}
 .umschalter{display:flex;border:1px solid var(--rand);border-radius:8px;overflow:hidden}
 .umschalter button{border:0;border-radius:0;background:transparent;padding:6px 12px;color:var(--leise)}
 .umschalter button.an{background:var(--papier);color:#1b1a14}
@@ -41,8 +49,23 @@ button.haupt{background:var(--akzent);border-color:var(--akzent);color:#1b1a14;f
 .knoepfe{display:flex;flex-wrap:wrap;gap:8px}
 .knoepfe button{flex:1 1 auto}
 
+button.krieg{background:#7d1d17;border-color:#a1271f}
+button.krieg.sicher{background:#c0271d}
+#einheitPanel{position:fixed;right:12px;top:62px;width:290px;max-width:calc(100% - 24px);z-index:6;background:rgba(27,31,36,.97);
+  border:1px solid #6a5a2a;border-radius:12px;padding:14px 16px}
+#einheitPanel h2{margin:2px 0 2px;font-size:18px}
+.balken{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:8px;margin:8px 0 0;font-size:13px;color:var(--leise)}
+.balken div{height:8px;background:#11151a;border-radius:4px;overflow:hidden}
+.balken i{display:block;height:100%;background:#4fc45a}
+#eStaerke{background:#e8e8e8}
+.status{margin:10px 0 4px;font-size:14px}
+.hinweis{margin:0 0 10px;font-size:12.5px;color:var(--akzent)}
+#meldungen{position:fixed;left:10px;bottom:28px;z-index:4;display:flex;flex-direction:column;gap:4px;max-width:min(420px,calc(100% - 20px));pointer-events:none}
+#meldungen div{background:rgba(20,22,26,.9);border:1px solid var(--rand);border-radius:8px;padding:4px 9px;font-size:12.5px;transition:opacity .6s}
+#meldungen div.wichtig{border-color:var(--akzent)}
+#meldungen div .klein{margin-right:6px;font-family:var(--mono)}
 #hilfe{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
-#hilfe[hidden],#panel[hidden],#tipp[hidden]{display:none}
+#hilfe[hidden],#panel[hidden],#tipp[hidden],#einheitPanel[hidden],button[hidden]{display:none}
 .hilfe-karte{background:var(--chrom);border:1px solid var(--rand);border-radius:14px;padding:20px 22px;max-width:440px}
 .hilfe-karte h2{margin:0 0 10px;font-family:var(--mono);letter-spacing:.1em}
 .hilfe-karte ul{padding-left:18px;margin:0 0 12px}
@@ -55,9 +78,12 @@ button.haupt{background:var(--akzent);border-color:var(--akzent);color:#1b1a14;f
 @media (max-width:700px){
   #leiste{gap:8px;flex-wrap:wrap}
   .marke{display:none}
-  .spieler{order:5;width:100%}
+  .spieler{order:5;flex:1 1 60%}
+  .auto{order:6}
   .spieler:empty{display:none}
   .umschalter button{padding:6px 9px}
   #panel{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-width:none;padding-bottom:max(14px,env(safe-area-inset-bottom))}
-  #dsLink{bottom:auto;top:auto}
+  #einheitPanel{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-width:none}
+  .tempo button{padding:4px 7px}
+  #meldungen{bottom:auto;top:96px}
 }

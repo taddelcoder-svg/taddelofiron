@@ -36,10 +36,12 @@
       this.stil = STILE.generalstab;
       this.dekodieren(provDaten);
       for (const id in (welt.namen || {})) this.prov[id].n = welt.namen[id]; // Namen der Epoche
-      this.besitz = welt.besitz.slice();
+      this.besitz = welt.besitz.slice();       // wer die Provinz kontrolliert (Farbe, Grenzen)
+      this.eigentuemer = welt.besitz.slice();  // Kernland; Abweichung = besetzt (Schraffur)
       this.kamera = { x:10, y:projY(50), z:6 }; // z = Pixel pro Grad
       this.hover = -1; this.auswahl = -1; this.auswahlStaat = null;
-      this.beiKlick = null; this.beiHover = null;
+      this.beiKlick = null; this.beiHover = null; this.beiRechtsklick = null; this.beiZeichnen = null;
+      this.schraffur = this.bauSchraffur();
       this.schmutzig = true;
       this.baueGrenzen();
       this.eingabe();
@@ -83,6 +85,12 @@
       });
     }
     staat(tag){ return this.welt.staaten[tag]; }
+    bauSchraffur(){
+      const k = document.createElement('canvas'); k.width = k.height = 8;
+      const c = k.getContext('2d'); c.strokeStyle = 'rgba(20,16,10,.45)'; c.lineWidth = 1.6;
+      c.beginPath(); c.moveTo(-2, 10); c.lineTo(10, -2); c.moveTo(6, 10); c.lineTo(10, 6); c.moveTo(-2, 2); c.lineTo(2, -2); c.stroke();
+      return this.ctx.createPattern(k, 'repeat');
+    }
 
     // Grenzen je nach Besitz neu aufbauen (Kueste, Staatsgrenze, Provinzgrenze) + Beschriftungen
     baueGrenzen(){
@@ -203,6 +211,12 @@
           c.fillStyle = 'rgba(255,255,255,.18)';
           for (const t in farbe) if (t === this.auswahlStaat) for (const p of farbe[t]) c.fill(p.pfad);
         }
+        // Besetzte Provinzen schraffieren (Muster in Bildschirmgroesse)
+        if (this.schraffur){
+          this.schraffur.setTransform(new DOMMatrix().scale(1 / (k.z * dpr)).translate(0, 0));
+          c.fillStyle = this.schraffur;
+          for (const t in farbe) for (const p of farbe[t]) if (this.eigentuemer[p.id] !== t) c.fill(p.pfad);
+        }
         if (this.hover >= 0){ c.fillStyle = s.hover; c.fill(this.prov[this.hover].pfad); }
         c.lineJoin = 'round'; c.lineCap = 'round';
         if (k.z > 9){ c.strokeStyle = s.prov; c.lineWidth = s.provB * px * Math.min(1.6, k.z / 14); c.stroke(this.pfade.prov); }
@@ -211,6 +225,10 @@
         if (this.auswahl >= 0){ c.strokeStyle = s.wahl; c.lineWidth = 2.5 * px; c.stroke(this.prov[this.auswahl].pfad); }
       }
       this.zeichneText(B, H);
+      if (this.beiZeichnen){
+        c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        this.beiZeichnen(c, (wx, wy, v) => [B / 2 + (wx + v - k.x) * k.z, H / 2 + (wy - k.y) * k.z], this.versaetze());
+      }
     }
     zeichneText(B, H){
       const c = this.ctx, s = this.stil, k = this.kamera, dpr = this.dpr;
@@ -312,14 +330,19 @@
         zeiger.delete(e.pointerId);
         if (zeiger.size < 2) pinch = null;
         if (war && zeiger.size === 0){
-          if (bewegt < 8 && e.type === 'pointerup'){
+          if (bewegt < 8 && e.type === 'pointerup' && e.button !== 2){
             const p = pos(e), id = this.provinzAn(p[0], p[1]);
             this.auswahl = id; this.schmutzig = true;
-            if (this.beiKlick) this.beiKlick(id, e);
+            if (this.beiKlick) this.beiKlick(id, e, p);
           }
           zug = null;
         } else if (zeiger.size === 1){ zug = [...zeiger.values()][0]; }
       };
+      cv.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        const p = pos(e);
+        if (this.beiRechtsklick) this.beiRechtsklick(this.provinzAn(p[0], p[1]), p);
+      });
       cv.addEventListener('pointerup', ende); cv.addEventListener('pointercancel', ende);
       cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && this.hover >= 0){ this.hover = -1; this.schmutzig = true; if (this.beiHover) this.beiHover(-1); } });
       cv.addEventListener('wheel', e => {

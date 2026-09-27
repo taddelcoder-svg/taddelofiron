@@ -298,12 +298,41 @@ async function main(){
     }
     return { g:e.g, id, n:e.p.name, l:[+l[0].toFixed(3), +l[1].toFixed(3)], a:Math.round(fl), nb:[...nb[id]].sort((a, b) => a - b), besitzer:e.p.besitzer, mp:e.mp };
   });
+  // Gelaende: Stichproben in jeder Provinz gegen Natural-Earth-Regionen + Klimazonen
+  const REG = { 'Range/mtn':'berg', 'Foothills':'huegel', 'Plateau':'huegel', 'Desert':'wueste', 'Tundra':'tundra', 'Wetlands':'sumpf' };
+  const regionen = lesen(path.join(QUELLEN, 'regionen.geojson')).features
+    .filter(f => REG[f.properties.FEATURECLA]).map(f => ({ art:REG[f.properties.FEATURECLA], mp:alsMP(f.geometry) }))
+    .map(r => ({ ...r, box:mpBox(r.mp) }));
+  function klima(x, y){
+    const a = Math.abs(y);
+    if (a > 68) return 'tundra';
+    if ((y >= 57 && x > 10 && x < 180) || (y >= 50 && x < -52 && x > -170)) return 'wald';
+    if (a < 9 && ((x > -80 && x < -45) || (x > 8 && x < 31) || (x > 95 && x < 155))) return 'dschungel';
+    return 'ebene';
+  }
+  for (const p of provOut){
+    const bx = mpBox(p.mp), zaehl = {};
+    let n = 0;
+    for (let i = 0; i < 7; i++) for (let j = 0; j < 7; j++){
+      const x = bx[0] + (bx[2] - bx[0]) * (i + 0.5) / 7, y = bx[1] + (bx[3] - bx[1]) * (j + 0.5) / 7;
+      if (!imMP(x, y, p.mp)) continue;
+      n++;
+      let art = null;
+      for (const r of regionen) if (x >= r.box[0] && x <= r.box[2] && y >= r.box[1] && y <= r.box[3] && imMP(x, y, r.mp)){ art = r.art; if (art === 'berg') break; }
+      art = art || klima(x, y);
+      zaehl[art] = (zaehl[art] || 0) + 1;
+    }
+    if (!n){ p.t = klima(p.l[0], p.l[1]); continue; }
+    const anteil = k => (zaehl[k] || 0) / n;
+    p.t = anteil('berg') >= 0.35 ? 'berg' : anteil('sumpf') >= 0.35 ? 'sumpf' : anteil('wueste') >= 0.5 ? 'wueste' :
+      anteil('huegel') + anteil('berg') >= 0.4 ? 'huegel' : Object.keys(zaehl).sort((a, b) => zaehl[b] - zaehl[a])[0];
+  }
   const ausgabe = {
     version:1,
     quelle:'Natural Earth Admin-1 (gemeinfrei), Grenzschnitte: historical-basemaps (GPL-3.0)',
     transform:t.transform,
     arcs:t.arcs,
-    provinzen:provOut.map(p => ({ n:p.n, l:p.l, a:p.a, nb:p.nb, g:p.g.type === 'Polygon' ? [p.g.arcs] : p.g.arcs }))
+    provinzen:provOut.map(p => ({ n:p.n, l:p.l, a:p.a, t:p.t, nb:p.nb, g:p.g.type === 'Polygon' ? [p.g.arcs] : p.g.arcs }))
   };
   fs.writeFileSync(path.join(DATEN, 'provinzen.json'), JSON.stringify(ausgabe));
 

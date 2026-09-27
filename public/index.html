@@ -13,8 +13,15 @@
 
 <header id="leiste">
   <div class="marke">EPOCHEN</div>
-  <div class="datum" id="datum">1. Januar 1936</div>
+  <div class="zeit">
+    <button id="pause" class="zeitknopf" aria-label="Pause/Weiter">▶</button>
+    <div class="datum" id="datum">1. Januar 1936</div>
+    <div class="tempo" role="group" aria-label="Tempo">
+      <button data-tempo="1">1</button><button data-tempo="2">2</button><button data-tempo="3" class="an">3</button><button data-tempo="4">4</button><button data-tempo="5">5</button>
+    </div>
+  </div>
   <div class="spieler" id="spieler"></div>
+  <label class="auto" id="autoWahl" hidden title="Die KI führt deine Truppen im Krieg"><input type="checkbox" id="automatik"> Automatik</label>
   <div class="luecke"></div>
   <div class="umschalter" role="group" aria-label="Kartenstil">
     <button data-stil="generalstab" class="an">Generalstab</button>
@@ -35,16 +42,36 @@
     </div>
   </div>
   <dl class="werte">
+    <dt>Gelände</dt><dd id="pGelaende"></dd>
     <dt>Fläche</dt><dd id="pFlaeche"></dd>
+    <dt>Truppen hier</dt><dd id="pTruppen"></dd>
     <dt>Nachbarprovinzen</dt><dd id="pNachbarn"></dd>
     <dt>Provinzen des Staates</dt><dd id="pAnzahl"></dd>
     <dt>Hauptstadt</dt><dd id="pHaupt"></dd>
   </dl>
   <div class="knoepfe">
     <button id="pSpielen" class="haupt"></button>
+    <button id="pKrieg" class="krieg" hidden></button>
     <button id="pHaupt2">Zur Hauptstadt</button>
   </div>
 </aside>
+
+<aside id="einheitPanel" hidden>
+  <button class="schliessen" id="ePanelZu" aria-label="Auswahl aufheben">×</button>
+  <div class="klein" id="eStaat"></div>
+  <h2 id="eTitel"></h2>
+  <div class="klein" id="eArt"></div>
+  <div class="balken"><span>Organisation</span><div><i id="eOrg"></i></div></div>
+  <div class="balken"><span>Stärke</span><div><i id="eStaerke"></i></div></div>
+  <p class="status" id="eStatus"></p>
+  <p class="hinweis" id="eHinweis"></p>
+  <div class="knoepfe">
+    <button id="eHalt">Anhalten</button>
+    <button id="eAlle">Alle meine Truppen</button>
+  </div>
+</aside>
+
+<div id="meldungen" aria-live="polite"></div>
 
 <div id="hilfe" hidden>
   <div class="hilfe-karte">
@@ -53,9 +80,14 @@
       <li><b>Verschieben:</b> Karte ziehen oder W A S D / Pfeiltasten</li>
       <li><b>Zoomen:</b> Mausrad, Trackpad, zwei Finger oder + / −</li>
       <li><b>Provinz ansehen:</b> antippen oder anklicken</li>
-      <li><b>Kartenstil:</b> oben rechts zwischen Generalstab und Lesbar wechseln</li>
+      <li><b>Nation wählen:</b> Provinz antippen → „Als … spielen“</li>
+      <li><b>Truppen wählen:</b> Zählstein anklicken, mit Umschalt mehrere</li>
+      <li><b>Marschbefehl:</b> Rechtsklick auf das Ziel (Touch: Ziel antippen)</li>
+      <li><b>Zeit:</b> Leertaste = Pause, 1–5 = Tempo</li>
+      <li><b>Krieg:</b> fremde Provinz antippen → „Krieg erklären“</li>
+      <li><b>Automatik:</b> oben einschalten, dann führt die KI deine Truppen</li>
     </ul>
-    <p class="klein">Prototyp, Schritt 1: Weltkarte mit den Grenzen vom 1. Januar 1936. Einheiten, Wirtschaft und Kampf folgen.</p>
+    <p class="klein">Prototyp, Schritt 2: Einheiten, Bewegung, Kampf und Eroberung. Wirtschaft und Produktion folgen. Am 1. Januar 1936 läuft schon der Krieg Italiens gegen Äthiopien.</p>
     <button id="hilfeZu" class="haupt">Verstanden</button>
   </div>
 </div>
@@ -63,7 +95,9 @@
 <div id="laden">Karte wird geladen …</div>
 <a id="dsLink" href="/datenschutz">Datenschutz</a>
 
+<script src="logik.js"></script>
 <script src="karte.js"></script>
+<script src="einheiten.js"></script>
 <script src="ui.js"></script>
 </body>
 </html>
