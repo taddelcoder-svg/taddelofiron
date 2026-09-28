@@ -4,7 +4,8 @@
   const $ = id => document.getElementById(id);
   const merken = (k, v) => { try { v === undefined ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
   const holen = k => { try { return localStorage.getItem(k); } catch { return null; } };
-  const { Spiel, TYPEN, GELAENDE } = window.EpochenLogik;
+  const { Spiel, TYPEN, GELAENDE, ROHSTOFFE } = window.EpochenLogik;
+  const Speicher = window.EpochenSpeicher;
 
   let prov, welt;
   try {
@@ -19,11 +20,43 @@
   const karte = new EpochenKarte.Karte($('karte'), prov, welt);
   let spielerTag = holen('epochen.nation');
   if (spielerTag && !welt.staaten[spielerTag]) spielerTag = null;
-  const spiel = new Spiel(prov.provinzen, welt, { spieler:spielerTag, seed:Date.now() % 100000 });
-  karte.besitz = spiel.kontrolle; karte.baueGrenzen();
+  $('laden').classList.add('weg');
+
+  // ---------- Spielstand waehlen: Laden-Auftrag, Fortsetzen oder neu ----------
+  const MONATE_K = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+  const datumKurz = d => `${d.getUTCDate()}. ${MONATE_K[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  function dialog(titel, bauen){ // bauen(inhalt, schliessen) – gibt ein Versprechen zurueck
+    return new Promise(ok => {
+      $('menueTitel').textContent = titel; const box = $('menueInhalt'); box.innerHTML = '';
+      const zu = wert => { $('menue').hidden = true; ok(wert); };
+      $('menueZu').onclick = () => zu(null);
+      bauen(box, zu); $('menue').hidden = false;
+    });
+  }
+  function knopf(text, klasse, fn){ const b = document.createElement('button'); b.textContent = text; if (klasse) b.className = klasse; b.onclick = fn; return b; }
+  let stand = null;
+  const auftrag = holen('epochen.laden'); merken('epochen.laden');
+  if (auftrag){ const e = await Speicher.holen(auftrag); if (e) stand = e.stand; }
+  else {
+    const auto = await Speicher.holen('auto');
+    if (auto){
+      const wahl = await dialog('Willkommen zurück', (box, zu) => {
+        const p = document.createElement('p');
+        p.textContent = `Letzter Stand: ${auto.meta.datumText}${auto.meta.staat ? ' · ' + auto.meta.staat : ''}.`;
+        const k = document.createElement('div'); k.className = 'knoepfe';
+        k.append(knopf('Fortsetzen', 'haupt', () => zu('weiter')), knopf('Neues Spiel', '', () => zu('neu')));
+        box.append(p, k);
+      });
+      if (wahl !== 'neu') stand = auto.stand;
+    }
+  }
+  let spiel;
+  try { spiel = new Spiel(prov.provinzen, welt, stand ? { stand } : { spieler:spielerTag, seed:Date.now() % 100000 }); }
+  catch (e){ spiel = new Spiel(prov.provinzen, welt, { spieler:spielerTag, seed:Date.now() % 100000 }); stand = null; }
+  if (stand){ spielerTag = spiel.spieler; $('automatik').checked = !!spiel.automatik; }
+  karte.besitz = spiel.kontrolle; karte.eigentuemer = spiel.besitz; karte.baueGrenzen();
   spiel.provName = id => karte.prov[id].n;
   const ansicht = new EinheitenAnsicht(karte, spiel);
-  $('laden').classList.add('weg');
 
   // ---------- Kartenstil & Hilfe ----------
   const stilKnoepfe = document.querySelectorAll('.umschalter button');
@@ -44,7 +77,7 @@
   const STUNDEN_PRO_SEK = [0, 2, 6, 14, 30, 72];
   let laeuft = false, tempo = 3, rest = 0;
   const datumText = (d, uhr) => `${d.getUTCDate()}. ${MONATE[d.getUTCMonth()]} ${d.getUTCFullYear()}` + (uhr ? `, ${String(d.getUTCHours()).padStart(2, '0')}:00` : '');
-  function zeigeDatum(){ $('datum').textContent = datumText(spiel.datum(), true); }
+  function zeigeDatum(){ $('datum').textContent = datumText(spiel.datum(), innerWidth > 700); }
   function setzeLauf(an){ laeuft = an; $('pause').textContent = an ? '❚❚' : '▶'; $('pause').classList.toggle('laeuft', an); }
   function setzeTempo(t){ tempo = t; document.querySelectorAll('.tempo button').forEach(b => b.classList.toggle('an', +b.dataset.tempo === t)); }
   $('pause').addEventListener('click', () => setzeLauf(!laeuft));
@@ -56,6 +89,15 @@
     if (e.key === 'Escape'){ abwaehlen(); $('panel').hidden = true; karte.auswahl = -1; karte.auswahlStaat = null; karte.schmutzig = true; }
   });
   zeigeDatum();
+  let letzterMonat = spiel.datum().getUTCMonth();
+  function eintrag(){
+    const s = spielerTag && welt.staaten[spielerTag];
+    return { meta:{ datumText:datumKurz(spiel.datum()), stunde:spiel.stunde, spieler:spielerTag, staat:s ? s.n : null, gespeichert:Date.now() }, stand:spiel.stand() };
+  }
+  let autosaveAn = true;
+  const autosave = () => { if (autosaveAn) Speicher.schreiben('auto', eintrag()); };
+  addEventListener('pagehide', autosave);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) autosave(); });
   let zuletzt = performance.now(), panelTakt = 0;
   function takt(jetzt){
     const dt = Math.min(0.25, (jetzt - zuletzt) / 1000); zuletzt = jetzt;
@@ -68,6 +110,8 @@
         zeigeDatum();
         karte.schmutzig = true;
         if (++panelTakt % 4 === 0) aktualisierePanels();
+        const m = spiel.datum().getUTCMonth();
+        if (m !== letzterMonat){ letzterMonat = m; autosave(); }
       }
     }
     requestAnimationFrame(takt);
@@ -115,11 +159,13 @@
     if (!spielerTag) return;
     const s = welt.staaten[spielerTag];
     const f = document.createElement('span'); f.className = 'flagge'; f.style.background = s.f;
-    el.append('Du führst: ', f, s.n + (spiel.staaten[spielerTag].kapituliert ? ' (kapituliert)' : ''));
+    const d = document.createElement('span'); d.className = 'dufuehrst'; d.textContent = 'Du führst:';
+    el.append(d, f, s.n + (spiel.staaten[spielerTag].kapituliert ? ' (kapituliert)' : ''));
   }
   zeigeSpieler();
   function waehleNation(tag){
     spielerTag = tag; spiel.spieler = tag; merken('epochen.nation', tag);
+    wui.aktualisieren();
     for (const u of spiel.einheiten) if (u.staat === tag){ u.wache = false; }
     abwaehlen(); zeigeSpieler();
   }
@@ -146,6 +192,24 @@
     hier.forEach(u => proStaat[u.staat] = (proStaat[u.staat] || 0) + 1);
     $('pTruppen').textContent = Object.keys(proStaat).length ? Object.entries(proStaat).map(([t, n]) => `${n} ${karte.staat(t).n}`).join(', ') : 'keine';
     $('pNachbarn').textContent = p.nb.length;
+    const bevT = spiel.bev[id];
+    $('pBev').textContent = bevT >= 1000 ? (bevT / 1000).toLocaleString('de-DE', { maximumFractionDigits:1 }) + ' Mio.' : zahl(bevT) + ' Tsd.';
+    $('pFabriken').textContent = `${spiel.zf[id]} zivil · ${spiel.mf[id]} militär (Plätze ${spiel.fabrikPlaetze(id)})`;
+    $('pInfra').textContent = `${spiel.infra[id]} · ${spiel.festung[id]}`;
+    const roh = Object.entries(ROHSTOFFE).filter(([r]) => spiel.roh[r][id]).map(([r, n]) => `${spiel.roh[r][id]} ${n}`);
+    $('pRoh').textContent = roh.length ? roh.join(', ') : '–';
+    const eigen = spielerTag && eig === spielerTag && tag === spielerTag;
+    $('pBauen').hidden = !eigen;
+    if (eigen) document.querySelectorAll('#pBauen [data-bau]').forEach(b => {
+      const grund = spiel.kannBauen(spielerTag, b.dataset.bau, id);
+      b.title = grund || ''; b.classList.toggle('aus', !!grund);
+      b.onclick = () => {
+        if (grund){ meldungZeigen({ stunde:spiel.stunde, text:grund + '.' }); return; }
+        spiel.bauen(spielerTag, b.dataset.bau, id);
+        meldungZeigen({ stunde:spiel.stunde, text:`Bauauftrag: ${b.textContent} in ${p.n}.` });
+        wui.aktualisieren(); aktualisiereProvinz();
+      };
+    });
     $('pAnzahl').textContent = karte.besitz.filter(t => t === tag).length;
     $('pHaupt').textContent = s.hn || karte.prov[s.hauptstadt].n;
     $('pSpielen').textContent = spielerTag === tag ? 'Deine Nation' : 'Als ' + s.n + ' spielen';
@@ -234,15 +298,69 @@
   karte.beiRechtsklick = id => { if (!befehl(id) && id >= 0) zeigeProvinz(id); };
 
   function aktualisierePanels(){
+    wui.aktualisieren();
     if (!$('einheitPanel').hidden) aktualisiereEinheiten();
     if (!$('panel').hidden && !kriegBestaetigen) aktualisiereProvinz();
     zeigeSpieler();
   }
+
+  // ---------- Wirtschaft ----------
+  const wui = new WirtschaftUI({ spiel:() => spiel, spieler:() => spielerTag, karte, provName:id => karte.prov[id].n,
+    meldung:text => meldungZeigen({ stunde:spiel.stunde, text }) });
+  wui.aktualisieren();
+
+  // ---------- Kartenmodi ----------
+  const GEL_FARBE = { ebene:'#cfd9a2', wald:'#6f9a5a', huegel:'#c9b57a', berg:'#9a8a78', sumpf:'#7fa39a', wueste:'#e6d29a', dschungel:'#3f7a4a', tundra:'#d3dadc' };
+  const MODI = [
+    ['politisch', 'Politisch', null],
+    ['gelaende', 'Gelände', id => GEL_FARBE[spiel.prov[id].t]],
+    ['industrie', 'Industrie', id => { const x = Math.min(1, Math.sqrt(spiel.zf[id] + spiel.mf[id]) / 5); return `rgb(${Math.round(236 - 120 * x)},${Math.round(228 - 170 * x)},${Math.round(207 - 180 * x)})`; }],
+    ['rohstoffe', 'Rohstoffe', id => spiel.roh.oel[id] ? '#2b2b2b' : spiel.roh.gummi[id] ? '#3f8a4a' : spiel.roh.stahl[id] ? '#6f8296' : '#e6dcc0']
+  ];
+  let modus = 0;
+  function setzeModus(i){ modus = i; karte.modusFarbe = MODI[i][2]; $('modusKnopf').textContent = 'Karte: ' + MODI[i][1]; karte.schmutzig = true; }
+  $('modusKnopf').addEventListener('click', () => setzeModus((modus + 1) % MODI.length));
+  addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && !(e.target.closest && e.target.closest('input'))) setzeModus((modus + 1) % MODI.length); });
+
+  // ---------- Menue: Speichern, Laden, Export/Import, Neues Spiel ----------
+  async function menue(){
+    const warLauf = laeuft; setzeLauf(false);
+    const plaetze = await Speicher.uebersicht();
+    await dialog('Menü', (box, zu) => {
+      const neuLaden = platz => { autosaveAn = false; merken('epochen.laden', platz); location.reload(); };
+      for (const p of ['auto', 'platz1', 'platz2', 'platz3']){
+        const m = plaetze[p], zeile = document.createElement('div'); zeile.className = 'platz';
+        const info = document.createElement('div');
+        const b = document.createElement('b'); b.textContent = p === 'auto' ? 'Autosave' : 'Platz ' + p.slice(-1);
+        const k = document.createElement('div'); k.className = 'klein'; k.textContent = m ? `${m.datumText}${m.staat ? ' · ' + m.staat : ''}` : 'leer';
+        info.append(b, k); zeile.append(info);
+        if (p !== 'auto') zeile.append(knopf('Speichern', '', async () => { await Speicher.schreiben(p, eintrag()); zu(); meldungZeigen({ stunde:spiel.stunde, text:'Gespeichert.' }); }));
+        if (m) zeile.append(knopf('Laden', '', () => neuLaden(p)));
+        box.append(zeile);
+      }
+      const k = document.createElement('div'); k.className = 'knoepfe'; k.style.marginTop = '12px';
+      k.append(
+        knopf('Kartenstil: ' + (karte.stil === EpochenKarte.STILE.flach ? 'Lesbar' : 'Generalstab'), '', () => { stil(karte.stil === EpochenKarte.STILE.flach ? 'generalstab' : 'flach'); zu(); }),
+        knopf('Als Datei exportieren', '', () => Speicher.exportieren(eintrag())),
+        knopf('Datei importieren', '', async () => {
+          const e = await Speicher.importieren();
+          if (!e){ meldungZeigen({ stunde:spiel.stunde, text:'Die Datei ist kein Epochen-Spielstand.' }); return; }
+          await Speicher.schreiben('import', e); neuLaden('import');
+        }),
+        knopf('Neues Spiel', 'krieg', async () => { autosaveAn = false; await Speicher.loeschen('auto'); location.reload(); })
+      );
+      const ds = document.createElement('a'); ds.href = '/datenschutz'; ds.textContent = 'Datenschutz'; ds.className = 'klein'; ds.style.display = 'block'; ds.style.marginTop = '10px'; ds.style.color = 'var(--leise)';
+
+      box.append(k, ds);
+    });
+    if (warLauf) setzeLauf(true);
+  }
+  $('menueKnopf').addEventListener('click', menue);
 
   // ---------- Start ----------
   if (spielerTag) karte.fliegeZu(welt.staaten[spielerTag].hauptstadt, 9);
   else { karte.kamera.x = 15; karte.kamera.y = EpochenKarte.projY(50); karte.kamera.z = Math.max(6, innerWidth / 70); karte.begrenzen(); }
 
   // Debug-Zugriff
-  window.epochen = { karte, welt, prov, spiel, ansicht, sim:h => { for (let i = 0; i < h; i++) spiel.schritt(); if (spiel.aenderung){ spiel.aenderung = false; karte.baueGrenzen(); } zeigeDatum(); aktualisierePanels(); karte.schmutzig = true; } };
+  window.epochen = { karte, welt, prov, spiel, ansicht, wui, speichern:autosave, sim:h => { for (let i = 0; i < h; i++) spiel.schritt(); if (spiel.aenderung){ spiel.aenderung = false; karte.baueGrenzen(); } zeigeDatum(); aktualisierePanels(); karte.schmutzig = true; } };
 })();

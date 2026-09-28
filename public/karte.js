@@ -195,14 +195,16 @@
           for (let lat = -60; lat <= 80; lat += schritt){ const y = projY(lat); c.moveTo(-180, y); c.lineTo(180, y); }
           c.stroke();
         }
-        // Provinzflaechen, nach Farbe gebuendelt
-        const farbe = {};
+        // Provinzflaechen, nach Farbe gebuendelt (Kartenmodus kann eigene Farben liefern)
+        const farbe = {}, modusFarben = {};
         for (const p of this.prov){
           if (p.box[2] < sx0 || p.box[0] > sx1 || p.box[3] < wy0 || p.box[1] > wy1) continue;
           const t = this.besitz[p.id];
           (farbe[t] || (farbe[t] = [])).push(p);
+          if (this.modusFarbe){ const f = this.modusFarbe(p.id); (modusFarben[f] || (modusFarben[f] = [])).push(p); }
         }
-        for (const t in farbe){
+        if (this.modusFarbe) for (const f in modusFarben){ c.fillStyle = f; for (const p of modusFarben[f]) c.fill(p.pfad); }
+        else for (const t in farbe){
           c.fillStyle = s.land(this.staat(t).f);
           for (const p of farbe[t]) c.fill(p.pfad);
         }
@@ -212,7 +214,7 @@
           for (const t in farbe) if (t === this.auswahlStaat) for (const p of farbe[t]) c.fill(p.pfad);
         }
         // Besetzte Provinzen schraffieren (Muster in Bildschirmgroesse)
-        if (this.schraffur){
+        if (this.schraffur && !this.modusFarbe){
           this.schraffur.setTransform(new DOMMatrix().scale(1 / (k.z * dpr)).translate(0, 0));
           c.fillStyle = this.schraffur;
           for (const t in farbe) for (const p of farbe[t]) if (this.eigentuemer[p.id] !== t) c.fill(p.pfad);

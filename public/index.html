@@ -22,13 +22,17 @@
   </div>
   <div class="spieler" id="spieler"></div>
   <label class="auto" id="autoWahl" hidden title="Die KI führt deine Truppen im Krieg"><input type="checkbox" id="automatik"> Automatik</label>
+  <button id="wirtschaftKnopf" hidden title="Wirtschaft (P)">Wirtschaft</button>
+  <button id="modusKnopf" title="Kartenmodus (M)">Karte: Politisch</button>
   <div class="luecke"></div>
   <div class="umschalter" role="group" aria-label="Kartenstil">
     <button data-stil="generalstab" class="an">Generalstab</button>
     <button data-stil="flach">Lesbar</button>
   </div>
+  <button id="menueKnopf" class="rund" aria-label="Menü">≡</button>
   <button id="hilfeKnopf" class="rund" aria-label="Steuerung">?</button>
 </header>
+<div id="ressourcen" hidden></div>
 
 <div id="tipp" hidden></div>
 
@@ -45,10 +49,19 @@
     <dt>Gelände</dt><dd id="pGelaende"></dd>
     <dt>Fläche</dt><dd id="pFlaeche"></dd>
     <dt>Truppen hier</dt><dd id="pTruppen"></dd>
+    <dt>Bevölkerung</dt><dd id="pBev"></dd>
+    <dt>Fabriken</dt><dd id="pFabriken"></dd>
+    <dt>Infrastruktur · Festung</dt><dd id="pInfra"></dd>
+    <dt>Rohstoffe</dt><dd id="pRoh"></dd>
     <dt>Nachbarprovinzen</dt><dd id="pNachbarn"></dd>
     <dt>Provinzen des Staates</dt><dd id="pAnzahl"></dd>
     <dt>Hauptstadt</dt><dd id="pHaupt"></dd>
   </dl>
+  <div class="bauen" id="pBauen" hidden>
+    <span class="klein">Bauen:</span>
+    <button data-bau="zf">Zivile Fabrik</button><button data-bau="mf">Militärfabrik</button>
+    <button data-bau="festung">Festung</button><button data-bau="infra">Infrastruktur</button>
+  </div>
   <div class="knoepfe">
     <button id="pSpielen" class="haupt"></button>
     <button id="pKrieg" class="krieg" hidden></button>
@@ -73,6 +86,22 @@
 
 <div id="meldungen" aria-live="polite"></div>
 
+<aside id="wirtschaft" hidden>
+  <button class="schliessen" id="wZu" aria-label="Schließen">×</button>
+  <div class="reiter" role="tablist">
+    <button data-tab="produktion">Produktion</button><button data-tab="bau">Bau</button><button data-tab="heer">Heer</button>
+  </div>
+  <div id="wInhalt"></div>
+</aside>
+
+<div id="menue" class="dialog" hidden>
+  <div class="dialog-karte">
+    <h2 id="menueTitel">Menü</h2>
+    <div id="menueInhalt"></div>
+    <div class="knoepfe"><button id="menueZu">Schließen</button></div>
+  </div>
+</div>
+
 <div id="hilfe" hidden>
   <div class="hilfe-karte">
     <h2>Steuerung</h2>
@@ -86,8 +115,10 @@
       <li><b>Zeit:</b> Leertaste = Pause, 1–5 = Tempo</li>
       <li><b>Krieg:</b> fremde Provinz antippen → „Krieg erklären“</li>
       <li><b>Automatik:</b> oben einschalten, dann führt die KI deine Truppen</li>
+      <li><b>Wirtschaft:</b> P = Produktion, B = Bau, H = Heer · M = Kartenmodus</li>
+      <li><b>Speichern:</b> Menü ≡ (Autosave jeden Spielmonat)</li>
     </ul>
-    <p class="klein">Prototyp, Schritt 2: Einheiten, Bewegung, Kampf und Eroberung. Wirtschaft und Produktion folgen. Am 1. Januar 1936 läuft schon der Krieg Italiens gegen Äthiopien.</p>
+    <p class="klein">Version 0.3: Fabriken, Rohstoffe, Produktion, neue Divisionen und Speicherstände. Fronten und Versorgung folgen in 0.4. Am 1. Januar 1936 läuft schon der Krieg Italiens gegen Äthiopien.</p>
     <button id="hilfeZu" class="haupt">Verstanden</button>
   </div>
 </div>
@@ -96,8 +127,11 @@
 <a id="dsLink" href="/datenschutz">Datenschutz</a>
 
 <script src="logik.js"></script>
+<script src="wirtschaft.js"></script>
+<script src="speichern.js"></script>
 <script src="karte.js"></script>
 <script src="einheiten.js"></script>
+<script src="wirtschaftui.js"></script>
 <script src="ui.js"></script>
 </body>
 </html>

@@ -58,7 +58,6 @@
     }
   }
 
-  function zufall(seed){ let s = seed >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
   function distKm(a, b){
     const dl = (b[0] - a[0]) * RAD * Math.cos((a[1] + b[1]) / 2 * RAD), dp = (b[1] - a[1]) * RAD;
     return Math.hypot(dl, dp) * 6371;
@@ -76,11 +75,40 @@
       this.kriege = new Set();
       this.einheiten = []; this.naechsteId = 1;
       this.spieler = opt.spieler || null;
-      this.rnd = zufall(opt.seed || 1936);
+      this.rngS = (opt.seed >>> 0) || 1936;
       this.meldungen = []; this.beiMeldung = null;
       this.aenderung = true; // Kontrolle hat sich geaendert (Karte neu aufbauen)
+      this.festung = new Int8Array(this.prov.length);
+      if (this.wirtschaftStart) this.wirtschaftStart(welt);
+      if (opt.stand){ this.ladeStand(opt.stand); return; }
       this.aufstellen();
+      if (this.wirtschaftNachAufstellung) this.wirtschaftNachAufstellung();
       for (const [a, b] of START.kriege) this.kriegErklaeren(a, b, true);
+    }
+    rnd(){ let s = this.rngS; s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; this.rngS = s; return s / 4294967296; }
+
+    // ---------- Speichern / Laden ----------
+    stand(){
+      const st = {};
+      for (const [t, s] of Object.entries(this.staaten)) st[t] = { kapituliert:s.kapituliert };
+      return {
+        version:1, epoche:'1936', stunde:this.stunde, rngS:this.rngS, spieler:this.spieler, automatik:!!this.automatik,
+        kontrolle:this.kontrolle.slice(), besitz:this.besitz.slice(), kriege:[...this.kriege], staaten:st,
+        einheiten:this.einheiten.map(u => ({ ...u, pfad:u.pfad.slice() })), naechsteId:this.naechsteId,
+        festung:Array.from(this.festung), meldungen:this.meldungen.slice(-20),
+        wirtschaft:this.wirtschaftStand ? this.wirtschaftStand() : null
+      };
+    }
+    ladeStand(d){
+      if (!d || d.version !== 1) throw new Error('Unbekannter Spielstand');
+      this.stunde = d.stunde; this.rngS = d.rngS; this.spieler = d.spieler; this.automatik = d.automatik;
+      this.kontrolle = d.kontrolle.slice(); this.besitz = d.besitz.slice();
+      this.kriege = new Set(d.kriege); this._feind = null;
+      for (const [t, s] of Object.entries(d.staaten)) if (this.staaten[t]) this.staaten[t].kapituliert = s.kapituliert;
+      this.einheiten = d.einheiten.map(u => ({ ...u, pfad:u.pfad.slice() })); this.naechsteId = d.naechsteId;
+      this.festung = Int8Array.from(d.festung); this.meldungen = d.meldungen || [];
+      if (d.wirtschaft && this.ladeWirtschaft) this.ladeWirtschaft(d.wirtschaft);
+      this.aenderung = true;
     }
 
     // ---------- Hilfen ----------
@@ -187,7 +215,7 @@
 
     // ---------- Befehle ----------
     betretbar(tag, p){ const k = this.kontrolle[p]; return this.freund(tag, k) || this.feind(tag, k); }
-    wegKosten(u, von, i){ const nach = this.prov[von].nb[i]; return this.nbKm[von][i] / TYPEN[u.typ].tempo * GELAENDE[this.prov[nach].t].weg; }
+    wegKosten(u, von, i){ const nach = this.prov[von].nb[i]; return this.nbKm[von][i] / TYPEN[u.typ].tempo * GELAENDE[this.prov[nach].t].weg / (0.9 + 0.05 * (this.infra ? this.infra[nach] : 2)); }
     weg(u, ziel){ // Dijkstra ueber freundliche und feindliche Provinzen
       if (ziel === u.prov) return [];
       if (!this.betretbar(u.staat, ziel)) return null;
@@ -248,12 +276,12 @@
       }
       for (const [p, angreifer] of kaempfe) this.kampf(p, angreifer);
       if (this.stunde % 6 === 0) this.ki();
-      if (this.stunde % 24 === 0) this.pruefeKapitulation();
+      if (this.stunde % 24 === 0){ this.pruefeKapitulation(); if (this.wirtschaftTag) this.wirtschaftTag(); }
     }
     erholen(u, f){
       const t = TYPEN[u.typ];
       u.org = Math.min(t.org, u.org + 1.2 * f);
-      if (f >= 1 && this.freund(this.kontrolle[u.prov], u.staat)) u.staerke = Math.min(1, u.staerke + 0.002);
+      if (f >= 1 && !this.wirtschaftStart && this.freund(this.kontrolle[u.prov], u.staat)) u.staerke = Math.min(1, u.staerke + 0.002);
     }
     einnehmen(p, tag){
       // Befreites eigenes/verbuendetes Kernland geht an den Besitzer zurueck
@@ -271,7 +299,7 @@
       if (!verteidiger.length) return;
       const summe = (l, w) => l.reduce((s, u) => s + this.kraft(u, w), 0);
       let A = summe(angreifer, 'angriff') * GELAENDE[this.prov[p].t].angriff;
-      let V = verteidiger.reduce((s, v) => s + this.kraft(v, 'verteidigung') * (1 + 0.3 * v.schanz), 0);
+      let V = verteidiger.reduce((s, v) => s + this.kraft(v, 'verteidigung') * (1 + 0.3 * v.schanz), 0) * (1 + 0.15 * this.festung[p]);
       // Panzerung: wer mehr Panzerung hat als der Gegner Durchschlag, kaempft besser
       const mittel = (l, w) => l.reduce((s, u) => s + TYPEN[u.typ][w], 0) / l.length;
       let schadenAn = 1, schadenVe = 1;
@@ -299,6 +327,7 @@
     }
     vernichten(u, grund){
       this.einheiten = this.einheiten.filter(v => v !== u);
+      if (this.verlust) this.verlust(u);
       if (u.staat === this.spieler) this.meldung(`Eine ${TYPEN[u.typ].n}division wurde ${grund}.`);
     }
 
@@ -360,6 +389,6 @@
     }
   }
 
-  const api = { Spiel, TYPEN, ARMEEN, GELAENDE };
+  const api = { Spiel, TYPEN, ARMEEN, GELAENDE, distKm };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else global.EpochenLogik = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "karte": "node werkzeug/provinzen-bauen.js"
+    "karte": "node werkzeug/provinzen-bauen.js && node werkzeug/wirtschaft-bauen.js"
   },
   "license": "GPL-3.0",
   "devDependencies": {

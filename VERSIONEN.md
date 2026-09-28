@@ -1,6 +1,6 @@
 # Epochen – Versionsplan bis 1.0 und danach
 
-Stand: 2026-09-28 · Grundlage: [KONZEPT.md](KONZEPT.md) · Aktuell: **0.2** (Karte, Einheiten, Kampf, Zeit)
+Stand: 2026-09-28 · Grundlage: [KONZEPT.md](KONZEPT.md) · Aktuell: **0.3** (Karte, Einheiten, Kampf, Zeit, Wirtschaft, Speichern)
 
 Jede Version ist für sich spielbar und wird auf Render ausgeliefert. Die Reihenfolge folgt der Frage:
 *Was fehlt am meisten, damit eine Partie Spaß macht?* Deshalb kommen Wirtschaft und Speichern zuerst,
@@ -11,7 +11,7 @@ die Weltpolitik folgt danach und muss dann gleich online-fähig gebaut werden.
 |---|---|---|---|
 | 0.1 ✅ | Weltkarte | 1614 Provinzen, 80 Staaten 1936, Kartenstile | – |
 | 0.2 ✅ | Erster Schuss | Divisionen, Marsch, Kampf, Gelände, Kapitulation, Zeit | – |
-| 0.3 | Kriegswirtschaft | Fabriken, Rohstoffe, Produktion, Mannstärke, Speichern | groß |
+| 0.3 ✅ | Kriegswirtschaft | Fabriken, Rohstoffe, Produktion, Mannstärke, Speichern | groß |
 | 0.4 | Fronten | Versorgung, Winter, Armeen + Generäle, Frontlinien, Angriffspfeile, KI 2 | groß |
 | 0.5 | Über das Meer | Seezonen, Häfen, Flotten, Transporte, Invasionen, Luftwaffe light | groß |
 | 0.6 | Gemeinsam | Online-Räume bis 8 Spieler, Online-Speicherstände (Supabase) | groß |
@@ -22,7 +22,9 @@ die Weltpolitik folgt danach und muss dann gleich online-fähig gebaut werden.
 
 ---
 
-## 0.3 „Kriegswirtschaft“
+## 0.3 „Kriegswirtschaft“ ✅ (2026-09-28)
+
+> Umgesetzt in `public/wirtschaft.js` (Regeln + Wirtschafts-KI), `public/wirtschaftui.js`, `public/speichern.js`, Daten aus `werkzeug/wirtschaft-bauen.js` (Städte aus Natural Earth als Gewicht). Abweichungen vom Plan: Artillerie als eigene Ware verschoben auf 0.4; Produktion 2,5 statt 4,5 Punkte je MF (sonst zu viele Divisionen); Festungen 1936 (Maginot-, tschechische und Mannerheim-Linie) schon eingebaut. Test: `node werkzeug/simtest.js [seed] [jahre]` inkl. Determinismus nach Laden.
 
 **Ziel:** Verluste lassen sich ersetzen, Staaten wachsen unterschiedlich stark, und eine Partie übersteht das Neuladen.
 

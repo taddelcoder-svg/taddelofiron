@@ -161,7 +161,7 @@ Ausführlicher Plan pro Version (0.3 bis 1.0 und danach): **[VERSIONEN.md](VERSI
 
 1. ✅ **Prototyp Karte** (2026-09-27): 1614 Weltprovinzen aus Natural Earth, 79 Staaten zum 1.1.1936 (Tabelle `werkzeug/grenzen-1936.js`, Schnitte entlang historical-basemaps 1938 mit Korrekturen), Canvas-Karte mit Zoom/Pan/Pinch/Weltumlauf/LOD, Stile Generalstab + Lesbar, Provinz-Panel, Nationswahl.
 2. ✅ **Bewegung & Kampf** (2026-09-27): Divisionen (Inf/Kav/Pz, Stärken grob nach HoI 1936), Marsch per Wegsuche, stündlicher Kampf mit Organisation/Stärke, Gelände (Natural-Earth-Regionen + Klimazonen), Verschanzung, Kampfbreite 6, Rückzug/Einkesselung, Eroberung mit Besatzungs-Schraffur, Kapitulation (≤30 % Kernland oder Hauptstadt weg und ≤60 %), Zeit mit Pause/Tempo 1–5, Kriegserklärung, Meldungen, Gegner-KI + Automatik für den Spieler. Start: Italien–Äthiopien-Krieg läuft.
-3. **Wirtschaft**: Fabriken, Rohstoffe, Produktion, Mannstärke, Versorgung, Einkesselung.
+3. ✅ **Wirtschaft** (2026-09-28, Version 0.3): Fabriken, Bauschlange, Rohstoffe mit Handel, Produktion, Mannstärke/Wehrgesetz, Ausbildung, Verstärkung aus dem Lager, Kartenmodi, Speicherstände. Versorgung/Einkesselung → 0.4.
 4. **Fronten & KI**: Frontlinien, Angriffspfeile, Gegner-KI (Verteidigen, Angreifen, Produzieren).
 5. **Politik**: Forschung, Fokusbäume (generisch + erste große Nationen), Diplomatie, Ereignisse, Siegpunkte.
 6. **Speicherstände & Online**: Solo-Saves, Online-Räume bis 8 Spieler, Host-Tempo, Online-Saves.

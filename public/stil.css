@@ -32,11 +32,56 @@ button.haupt{background:var(--akzent);border-color:var(--akzent);color:#1b1a14;f
 .umschalter button.an{background:var(--papier);color:#1b1a14}
 .rund{width:34px;height:34px;padding:0;border-radius:50%}
 
+#ressourcen{position:fixed;top:51px;left:0;right:0;z-index:4;display:flex;flex-wrap:wrap;gap:4px 14px;padding:4px 14px;
+  background:rgba(21,24,28,.9);border-bottom:1px solid var(--rand);font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--papier)}
+#ressourcen[hidden]{display:none}
+#ressourcen .feld b{color:var(--leise);font-weight:600}
+#ressourcen .mangel{color:#ff8a70}
+#ressourcen .import{color:#9fd0ff}
+#wirtschaft{position:fixed;left:12px;top:92px;width:400px;max-width:calc(100% - 24px);max-height:calc(100% - 110px);overflow:auto;z-index:6;
+  background:rgba(27,31,36,.97);border:1px solid var(--rand);border-radius:12px;padding:12px 16px 16px}
+#wirtschaft[hidden],#menue[hidden],.bauen[hidden]{display:none}
+.reiter{display:flex;gap:4px;margin:0 36px 10px 0}
+.reiter button{flex:1;padding:6px 8px;background:transparent}
+.reiter button.an{background:var(--papier);color:#1b1a14;border-color:var(--papier)}
+#wirtschaft h3{font-size:14px;margin:14px 0 6px;color:var(--akzent)}
+#wirtschaft p{margin:4px 0 8px}
+.linie{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--rand)}
+.zaehler{display:flex;align-items:center;gap:3px}
+.zaehler button{padding:3px 7px;min-width:30px}
+.zaehler span{min-width:28px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+table.roh{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+table.roh th{color:var(--leise);font-weight:400;text-align:right}
+table.roh td{text-align:right;padding:2px 0}
+table.roh td:first-child,table.roh th:first-child{text-align:left}
+.mangel{color:#ff8a70}
+.haken{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-top:10px;color:var(--leise)}
+.projekt{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--rand)}
+.projekt>div{flex:1}
+.fort{height:6px;background:#11151a;border-radius:3px;overflow:hidden;margin:5px 0 3px}
+.fort i{display:block;height:100%;background:var(--akzent)}
+.klein-knopf{padding:4px 9px}
+.aushebung{display:grid;grid-template-columns:1fr;gap:6px}
+.aushebung button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:1px}
+.aushebung button.aus{opacity:.65}
+.aushebung .klein{color:inherit;opacity:.8}
+.segment{display:flex;gap:4px}
+.segment button{flex:1;display:flex;flex-direction:column;align-items:center;padding:6px 4px}
+.segment button.an{background:var(--papier);color:#1b1a14}
+.liste{margin:0;padding-left:18px;font-size:13.5px}
+.bauen{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:0 0 10px}
+.bauen button{padding:4px 8px;font-size:12.5px}
+.dialog{position:fixed;inset:0;z-index:12;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.dialog-karte{background:var(--chrom);border:1px solid var(--rand);border-radius:14px;padding:18px 20px;width:min(460px,100%);max-height:calc(100% - 32px);overflow:auto}
+.dialog-karte h2{margin:0 0 12px;font-family:var(--mono);letter-spacing:.08em}
+.platz{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--rand)}
+.platz>div{flex:1}
+.platz button{padding:5px 10px}
 #tipp{position:fixed;pointer-events:none;z-index:6;background:rgba(20,22,26,.92);border:1px solid var(--rand);border-radius:6px;
   padding:4px 9px;font-size:13px;white-space:nowrap}
 #tipp .klein{color:var(--leise)}
 
-#panel{position:fixed;right:12px;top:62px;width:300px;max-width:calc(100% - 24px);z-index:5;background:rgba(27,31,36,.96);
+#panel{position:fixed;right:12px;top:92px;max-height:calc(100% - 110px);overflow:auto;width:300px;max-width:calc(100% - 24px);z-index:5;background:rgba(27,31,36,.96);
   border:1px solid var(--rand);border-radius:12px;padding:16px 16px 14px}
 .panel-kopf{display:flex;gap:12px;align-items:center;padding-right:26px}
 .flagge{display:inline-block;width:34px;height:24px;border-radius:3px;border:1px solid rgba(0,0,0,.5);flex:none}
@@ -51,7 +96,7 @@ button.haupt{background:var(--akzent);border-color:var(--akzent);color:#1b1a14;f
 
 button.krieg{background:#7d1d17;border-color:#a1271f}
 button.krieg.sicher{background:#c0271d}
-#einheitPanel{position:fixed;right:12px;top:62px;width:290px;max-width:calc(100% - 24px);z-index:6;background:rgba(27,31,36,.97);
+#einheitPanel{position:fixed;right:12px;top:92px;width:290px;max-width:calc(100% - 24px);z-index:6;background:rgba(27,31,36,.97);
   border:1px solid #6a5a2a;border-radius:12px;padding:14px 16px}
 #einheitPanel h2{margin:2px 0 2px;font-size:18px}
 .balken{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:8px;margin:8px 0 0;font-size:13px;color:var(--leise)}
@@ -76,7 +121,11 @@ button.krieg.sicher{background:#c0271d}
 #dsLink{position:fixed;left:10px;bottom:8px;font-size:12px;color:var(--leise);z-index:4;text-shadow:0 0 3px #000}
 
 @media (max-width:700px){
-  #leiste{gap:8px;flex-wrap:wrap}
+  #leiste{gap:6px;flex-wrap:wrap;padding-top:6px;padding-bottom:6px}
+  .datum{font-size:12.5px;padding:3px 7px;white-space:nowrap}
+  .umschalter,#dsLink,.dufuehrst{display:none}
+  #modusKnopf,#wirtschaftKnopf{padding:5px 9px;font-size:13.5px}
+  .rund{width:32px;height:32px}
   .marke{display:none}
   .spieler{order:5;flex:1 1 60%}
   .auto{order:6}
@@ -85,5 +134,9 @@ button.krieg.sicher{background:#c0271d}
   #panel{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-width:none;padding-bottom:max(14px,env(safe-area-inset-bottom))}
   #einheitPanel{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-width:none}
   .tempo button{padding:4px 7px}
-  #meldungen{bottom:auto;top:96px}
+  #meldungen{bottom:auto;top:150px}
+  #ressourcen{top:auto;bottom:0;font-size:11.5px;gap:2px 10px;padding:3px 8px}
+  #wirtschaft{left:8px;right:8px;top:auto;bottom:52px;width:auto;max-height:68%}
+  #modusKnopf{padding:6px 8px}
+  #panel{max-height:65%}
 }
