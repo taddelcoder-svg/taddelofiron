@@ -60,6 +60,7 @@
     stapel(){ // Provinz+Staat -> Einheiten
       const m = new Map();
       for (const u of this.spiel.einheiten){
+        if (u.aufSee) continue;
         const k = u.prov + '|' + u.staat;
         (m.get(k) || m.set(k, []).get(k)).push(u);
       }
@@ -73,6 +74,71 @@
       return null;
     }
     ausgewaehlt(){ return this.spiel.einheiten.filter(u => this.auswahl.has(u.id)); }
+    // Flotten, Seeschlachten und Transporte auf See
+    zeichneSee(c, ort, versaetze){
+      const sp = this.spiel, k = this.karte, z = k.kamera.z;
+      if (!sp.flotten || !k.meer) return;
+      const B = k.cv.clientWidth, H = k.cv.clientHeight, spieler = sp.spieler, L = window.EpochenLogik;
+      const zl = id => k.meer[id].l;
+      // Fahrwege eigener Flotten
+      for (const f of sp.flotten){
+        if (f.staat !== spieler || !f.pfad.length) continue;
+        for (const v of versaetze){
+          const pts = [f.zone, ...f.pfad].map(id => ort(zl(id)[0], zl(id)[1], v));
+          c.strokeStyle = this.flotteGewaehlt === f.id ? 'rgba(255,214,64,.95)' : 'rgba(20,40,60,.6)'; c.lineWidth = 2.5; c.setLineDash([6, 5]);
+          c.beginPath(); pts.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); c.stroke(); c.setLineDash([]);
+          this.pfeil(c, pts[pts.length - 2], pts[pts.length - 1], c.strokeStyle, 9);
+        }
+      }
+      // Transporte auf See
+      const trans = new Map();
+      for (const u of sp.einheiten){
+        if (!u.aufSee) continue;
+        const s = u.aufSee, t = Math.min(0.999, s.fort / s.dauer) * (s.zonen.length - 1), i = Math.floor(t), f = t - i;
+        const a = zl(s.zonen[i]), b = zl(s.zonen[Math.min(s.zonen.length - 1, i + 1)]);
+        const key = u.staat + '|' + s.ziel + '|' + i;
+        if (!trans.has(key)) trans.set(key, { l:[a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f], staat:u.staat, ids:[], landung:false });
+        const e = trans.get(key); e.ids.push(u.id); if (u.landung) e.landung = true;
+      }
+      if (z >= 2.5) for (const v of versaetze) for (const t of trans.values()){
+        if (t.staat !== spieler && !(spieler && sp.feind(spieler, t.staat)) && z < 20) continue;
+        const [x, y] = ort(t.l[0], t.l[1], v);
+        if (x < -30 || x > B + 30 || y < -30 || y > H + 30) continue;
+        const gew = t.ids.some(i => this.auswahl.has(i));
+        c.fillStyle = k.stil.land(k.staat(t.staat).f); c.strokeStyle = gew ? '#ffd640' : '#15120d'; c.lineWidth = gew ? 2.5 : 1.2;
+        c.beginPath(); c.moveTo(x - 14, y - 6); c.lineTo(x + 10, y - 6); c.lineTo(x + 16, y); c.lineTo(x + 10, y + 6); c.lineTo(x - 14, y + 6); c.closePath(); c.fill(); c.stroke();
+        c.fillStyle = '#15120d'; c.font = 'bold 10px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText((t.landung ? 'L ' : '') + t.ids.length, x, y + 0.5);
+        this.treffer.push({ x0:x - 14, y0:y - 7, x1:x + 16, y1:y + 7, prov:-1, staat:t.staat, ids:t.ids });
+      }
+      // Flotten
+      if (z < 2.5) return;
+      const proZone = new Map();
+      for (const f of sp.flotten) (proZone.get(f.zone) || proZone.set(f.zone, []).get(f.zone)).push(f);
+      for (const v of versaetze) for (const [zone, fs] of proZone){
+        const [x0, y0] = ort(zl(zone)[0], zl(zone)[1], v);
+        if (x0 < -60 || x0 > B + 60 || y0 < -40 || y0 > H + 40) continue;
+        const kampf = fs.some(a => fs.some(b => sp.feind(a.staat, b.staat)));
+        const zeigen = fs.filter(f => f.staat === spieler || (spieler && sp.feind(spieler, f.staat)) || z >= 12);
+        zeigen.forEach((f, i) => {
+          const x = x0 + (i - (zeigen.length - 1) / 2) * 44, y = y0 + 16;
+          const gew = this.flotteGewaehlt === f.id, n = L.schiffAnzahl(f), nurUb = f.schiffe.ub === n;
+          c.fillStyle = k.stil.land(k.staat(f.staat).f); c.strokeStyle = gew ? '#ffd640' : '#15120d'; c.lineWidth = gew ? 2.5 : 1.3;
+          c.beginPath(); c.moveTo(x - 20, y - 8); c.lineTo(x + 14, y - 8); c.lineTo(x + 21, y); c.lineTo(x + 14, y + 8); c.lineTo(x - 20, y + 8); c.closePath(); c.fill(); c.stroke();
+          c.fillStyle = '#15120d'; c.font = 'bold 11px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+          c.fillText((nurUb ? 'U ' : '') + n, x, y + 0.5);
+          if (f.auftrag === 'hafen'){ c.fillStyle = '#15120d'; c.font = 'bold 10px system-ui, sans-serif'; c.fillText('H', x - 26, y); }
+          const hp = L.staerkeFlotte(f, 'hp'); if (f.schaden > 0 && hp){ c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(x - 20, y + 9, 41, 3); c.fillStyle = '#e0503a'; c.fillRect(x - 20, y + 9, 41 * Math.min(1, f.schaden / hp * 3), 3); }
+          this.treffer.push({ x0:x - 20, y0:y - 9, x1:x + 21, y1:y + 12, prov:-1, staat:f.staat, flotte:f.id, ids:[] });
+        });
+        if (kampf){
+          c.save(); c.translate(x0, y0 - 6);
+          c.fillStyle = 'rgba(160,20,20,.9)'; c.beginPath(); c.arc(0, 0, 10, 0, Math.PI * 2); c.fill();
+          c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.moveTo(-5, -5); c.lineTo(5, 5); c.moveTo(5, -5); c.lineTo(-5, 5); c.stroke();
+          c.restore();
+        }
+      }
+    }
 
     zeichnen(c, ort, versaetze){
       const k = this.karte, s = k.stil, sp = this.spiel, z = k.kamera.z;
@@ -122,6 +188,7 @@
         c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.moveTo(-5, -5); c.lineTo(5, 5); c.moveTo(5, -5); c.lineTo(-5, 5); c.stroke();
         c.restore();
       }
+      this.zeichneSee(c, ort, versaetze);
       // 3. Zaehlsteine
       if (z < 3.2) return;
       const gross = z > 30;

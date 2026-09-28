@@ -18,13 +18,13 @@
   const STILE = {
     generalstab:{
       name:'Generalstab', meer:'#c9d5d2', gitter:'rgba(70,95,100,.18)', land:f => mischen(f, '#e6dcc0', .42),
-      kueste:'#3e4c4f', kuesteB:1.1, grenze:'#26221c', grenzeB:1.7, prov:'rgba(40,34,24,.28)', provB:.6,
+      kueste:'#3e4c4f', kuesteB:1.1, seeGrenze:'rgba(60,95,105,.38)', seeText:'rgba(40,70,80,.7)', grenze:'#26221c', grenzeB:1.7, prov:'rgba(40,34,24,.28)', provB:.6,
       schrift:'"Courier New", Courier, monospace', text:'#1f1b14', textRand:'rgba(236,228,206,.75)', gross:true,
       hover:'rgba(255,255,255,.28)', wahl:'#b3261e'
     },
     flach:{
       name:'Lesbar', meer:'#2c5a84', gitter:null, land:f => f,
-      kueste:'#10202e', kuesteB:1, grenze:'#0b0b0b', grenzeB:1.8, prov:'rgba(0,0,0,.22)', provB:.6,
+      kueste:'#10202e', kuesteB:1, seeGrenze:'rgba(255,255,255,.16)', seeText:'rgba(220,235,255,.55)', grenze:'#0b0b0b', grenzeB:1.8, prov:'rgba(0,0,0,.22)', provB:.6,
       schrift:'system-ui, "Segoe UI", Arial, sans-serif', text:'#ffffff', textRand:'rgba(0,0,0,.7)', gross:true,
       hover:'rgba(255,255,255,.3)', wahl:'#ffd23f'
     }
@@ -40,7 +40,7 @@
       this.besitz = welt.besitz.slice();       // wer die Provinz kontrolliert (Farbe, Grenzen)
       this.eigentuemer = welt.besitz.slice();  // Kernland; Abweichung = besetzt (Schraffur)
       this.kamera = { x:10, y:projY(50), z:6 }; // z = Pixel pro Grad
-      this.hover = -1; this.auswahl = -1; this.auswahlStaat = null;
+      this.hover = -1; this.seeHover = -1; this.auswahl = -1; this.auswahlStaat = null;
       this.beiKlick = null; this.beiHover = null; this.beiRechtsklick = null; this.beiZeichnen = null;
       this.schraffur = this.bauSchraffur();
       this.schmutzig = true;
@@ -86,6 +86,25 @@
       });
     }
     staat(tag){ return this.welt.staaten[tag]; }
+    setzeMeer(meer){
+      this.meer = meer.zonen.map((z, id) => {
+        const pfad = new Path2D(); let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        z.poly.forEach(([lon, lat], i) => { const y = projY(lat); i ? pfad.lineTo(lon, y) : pfad.moveTo(lon, y); x0 = Math.min(x0, lon); x1 = Math.max(x1, lon); y0 = Math.min(y0, y); y1 = Math.max(y1, y); });
+        pfad.closePath();
+        return { id, n:z.n, l:[z.l[0], projY(z.l[1])], pfad, box:[x0, y0, x1, y1], leer:!z.nb.length };
+      });
+      this.schmutzig = true;
+    }
+    seeAn(px, py){
+      if (!this.meer) return -1;
+      const [wx0, wy] = this.zuWelt(px, py), wx = ((wx0 + 180) % 360 + 360) % 360 - 180;
+      const c = this.ctx; c.setTransform(1, 0, 0, 1, 0, 0);
+      for (const z of this.meer){
+        if (z.leer || wx < z.box[0] || wx > z.box[2] || wy < z.box[1] || wy > z.box[3]) continue;
+        if (c.isPointInPath(z.pfad, wx, wy)) return z.id;
+      }
+      return -1;
+    }
     bauSchraffur(){
       const k = document.createElement('canvas'); k.width = k.height = 8;
       const c = k.getContext('2d'); c.strokeStyle = 'rgba(20,16,10,.45)'; c.lineWidth = 1.6;
@@ -208,6 +227,12 @@
           for (let lat = -60; lat <= 80; lat += schritt){ const y = projY(lat); c.moveTo(-180, y); c.lineTo(180, y); }
           c.stroke();
         }
+        // Seezonen (unter dem Land)
+        if (this.meer && k.z >= 3){
+          c.strokeStyle = s.seeGrenze; c.lineWidth = px;
+          for (const z of this.meer){ if (z.leer || z.box[2] < sx0 || z.box[0] > sx1 || z.box[3] < wy0 || z.box[1] > wy1) continue; c.stroke(z.pfad); }
+          if (this.seeHover >= 0 && this.meer[this.seeHover]){ c.fillStyle = 'rgba(255,255,255,.12)'; c.fill(this.meer[this.seeHover].pfad); }
+        }
         // Provinzflaechen, nach Farbe gebuendelt (Kartenmodus kann eigene Farben liefern)
         const farbe = {}, modusFarben = {};
         for (const p of this.prov){
@@ -261,6 +286,18 @@
         if (x < -10 || y < -10 || x > B + 10 || y > H + 10 || k.z < 3.5) continue;
         c.fillStyle = s.text; c.strokeStyle = s.textRand; c.lineWidth = 2;
         c.beginPath(); c.arc(x, y, k.z > 12 ? 3.5 : 2.5, 0, Math.PI * 2); c.stroke(); c.fill();
+      }
+      // Namen der Seezonen
+      if (this.meer && k.z >= 7){
+        c.font = `italic ${Math.min(13, 9 + k.z / 20).toFixed(1)}px Georgia, serif`; c.fillStyle = s.seeText;
+        for (const v of this.versaetze()) for (const z of this.meer){
+          if (z.leer) continue;
+          const [x, y] = ort(z.l[0], z.l[1], v);
+          if (x < 0 || x > B || y < 0 || y > H) continue;
+          const w = c.measureText(z.n).width;
+          if ((z.box[2] - z.box[0]) * k.z < w * 0.8 || !frei(x - w / 2, y - 7, x + w / 2, y + 7)) continue;
+          c.fillText(z.n, x, y);
+        }
       }
       // Staatsnamen
       const provNamen = k.z > 22;
@@ -343,8 +380,9 @@
           this.begrenzen(); this.schmutzig = true;
         } else if (e.pointerType === 'mouse'){
           const id = this.provinzAn(p[0], p[1]);
-          if (id !== this.hover){ this.hover = id; this.schmutzig = true; }
-          if (this.beiHover) this.beiHover(id, p);
+          const zone = id < 0 ? this.seeAn(p[0], p[1]) : -1;
+          if (id !== this.hover || zone !== this.seeHover){ this.hover = id; this.seeHover = zone; this.schmutzig = true; }
+          if (this.beiHover) this.beiHover(id, p, zone);
         }
       });
       const ende = e => {
@@ -361,7 +399,7 @@
           if (bewegt < 8 && e.type === 'pointerup' && e.button !== 2){
             const p = pos(e), id = this.provinzAn(p[0], p[1]);
             this.auswahl = id; this.schmutzig = true;
-            if (this.beiKlick) this.beiKlick(id, e, p);
+            if (this.beiKlick) this.beiKlick(id, e, p, id < 0 ? this.seeAn(p[0], p[1]) : -1);
           }
           zug = null;
         } else if (zeiger.size === 1){ zug = [...zeiger.values()][0]; }
@@ -369,7 +407,8 @@
       cv.addEventListener('contextmenu', e => {
         e.preventDefault();
         const p = pos(e);
-        if (this.beiRechtsklick) this.beiRechtsklick(this.provinzAn(p[0], p[1]), p);
+        const id = this.provinzAn(p[0], p[1]);
+        if (this.beiRechtsklick) this.beiRechtsklick(id, p, id < 0 ? this.seeAn(p[0], p[1]) : -1);
       });
       cv.addEventListener('pointerup', ende); cv.addEventListener('pointercancel', ende);
       cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && this.hover >= 0){ this.hover = -1; this.schmutzig = true; if (this.beiHover) this.beiHover(-1); } });

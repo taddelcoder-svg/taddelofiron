@@ -166,7 +166,7 @@ Ausführlicher Plan pro Version (0.3 bis 1.0 und danach): **[VERSIONEN.md](VERSI
 5. **Politik**: Forschung, Fokusbäume (generisch + erste große Nationen), Diplomatie, Ereignisse, Siegpunkte.
 6. **Speicherstände & Online**: Solo-Saves, Online-Räume bis 8 Spieler, Host-Tempo, Online-Saves.
 7. **Zweite Epoche: Mittelalter 1200**: Pergament-Stil, Heere, Belagerungen, Lehen – beweist den epochenunabhängigen Kern.
-8. **Luft & See**, Handy-Layout-Feinschliff, Balance.
+8. ✅ **Luft & See** (2026-09-28, Version 0.5): Seezonen, Flotten, Seeschlachten, Konvoikrieg, Transporte, Invasionen, Luftwaffe light. Handy-Feinschliff und Balance → 0.9.
 9. Danach: weitere Epochen, mehr eigene Fokusbäume.
 
 ## 10. Noch offen (später entscheiden)

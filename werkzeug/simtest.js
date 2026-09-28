@@ -4,11 +4,13 @@
 const L = require('../public/logik.js');
 require('../public/wirtschaft.js');
 require('../public/fronten.js');
+require('../public/seefahrt.js');
 const prov = require('../daten/provinzen.json').provinzen;
 const welt = require('../daten/epochen/1936/welt.json');
 const seed = +process.argv[2] || 1, jahre = +process.argv[3] || 3;
 
-const s = new L.Spiel(prov, welt, { seed });
+const meer = require('../daten/meer.json');
+const s = new L.Spiel(prov, welt, { seed, meer });
 s.beiMeldung = m => { if (m.wichtig) console.log('  Tag', Math.floor(m.stunde / 24), m.text); };
 const zeile = t => {
   const k = s.kennzahlen(t), w = s.wi[t];
@@ -26,7 +28,7 @@ console.log('Laufzeit', Date.now() - t0, 'ms');
 
 // Determinismus: Stand speichern, beide Spiele 60 Tage weiter, vergleichen
 const stand = JSON.parse(JSON.stringify(s.stand()));
-const s2 = new L.Spiel(prov, welt, { stand });
+const s2 = new L.Spiel(prov, welt, { stand, meer });
 s.beiMeldung = null;
 for (let h = 0; h < 24 * 60; h++){ s.schritt(); s2.schritt(); }
 const a = JSON.stringify(s.stand()), b = JSON.stringify(s2.stand());

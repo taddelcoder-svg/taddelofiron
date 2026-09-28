@@ -81,9 +81,11 @@
       this.aenderung = true; // Kontrolle hat sich geaendert (Karte neu aufbauen)
       this.festung = new Int8Array(this.prov.length);
       if (this.wirtschaftStart) this.wirtschaftStart(welt);
+      if (opt.meer && this.seeStart) this.seeStart(opt.meer);
       if (opt.stand){ this.ladeStand(opt.stand); return; }
       this.aufstellen();
       if (this.wirtschaftNachAufstellung) this.wirtschaftNachAufstellung();
+      if (this.see && this.seeNachAufstellung) this.seeNachAufstellung();
       for (const [a, b] of START.kriege) this.kriegErklaeren(a, b, true);
     }
     rnd(){ let s = this.rngS; s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; this.rngS = s; return s / 4294967296; }
@@ -98,7 +100,8 @@
         einheiten:this.einheiten.map(u => ({ ...u, pfad:u.pfad.slice() })), naechsteId:this.naechsteId,
         festung:Array.from(this.festung), meldungen:this.meldungen.slice(-20),
         wirtschaft:this.wirtschaftStand ? this.wirtschaftStand() : null,
-        fronten:this.frontenStand ? this.frontenStand() : null
+        fronten:this.frontenStand ? this.frontenStand() : null,
+        see:this.see && this.seeStand ? this.seeStand() : null
       };
     }
     ladeStand(d){
@@ -111,6 +114,7 @@
       this.festung = Int8Array.from(d.festung); this.meldungen = d.meldungen || [];
       if (d.wirtschaft && this.ladeWirtschaft) this.ladeWirtschaft(d.wirtschaft);
       if (d.fronten && this.ladeFronten) this.ladeFronten(d.fronten);
+      if (this.see && this.ladeSee) this.ladeSee(d.see || {});
       if (this.wetterBerechnen) this.wetterBerechnen();
       this.aenderung = true;
     }
@@ -257,10 +261,11 @@
       this.stunde++;
       const kaempfe = new Map(); // Provinz -> Angreifer
       const proProv = new Map();
-      for (const v of this.einheiten) (proProv.get(v.prov) || proProv.set(v.prov, []).get(v.prov)).push(v);
+      for (const v of this.einheiten) if (!v.aufSee) (proProv.get(v.prov) || proProv.set(v.prov, []).get(v.prov)).push(v);
       const hatFeind = (tag, p) => (proProv.get(p) || []).some(v => this.feind(tag, v.staat));
       for (const u of this.einheiten){
         u.kampf = false;
+        if (u.aufSee) continue;
         if (!u.pfad.length){ this.erholen(u, 1); u.schanz = Math.min(1, u.schanz + 0.01); continue; }
         const nxt = u.pfad[0];
         if (!this.betretbar(u.staat, nxt)){ u.pfad = []; u.fort = 0; continue; }
@@ -278,7 +283,9 @@
           if (this.feind(u.staat, this.kontrolle[nxt])) this.einnehmen(nxt, u.staat);
         }
       }
+      if (this.see){ this.seeSchritt(kaempfe); this.flotteSchritt(); }
       for (const [p, angreifer] of kaempfe) this.kampf(p, angreifer);
+      if (this.see && this.stunde % 24 === 0) this.seeTag();
       if (this.stunde % 24 === 0 && this.frontenTag) this.frontenTag();
       if (this.stunde % 6 === 0){ if (this.armeenSchritt) this.armeenSchritt(); this.ki(); }
       if (this.stunde % 24 === 0){ this.pruefeKapitulation(); if (this.wirtschaftTag) this.wirtschaftTag(); }
@@ -301,11 +308,14 @@
       // Kampfbreite: nur die staerksten Angreifer kaempfen, der Rest wartet
       const angreifer = alleAngreifer.length <= KAMPFBREITE ? alleAngreifer
         : alleAngreifer.slice().sort((a, b) => this.kraft(b, 'angriff') - this.kraft(a, 'angriff')).slice(0, KAMPFBREITE);
-      const verteidiger = this.einheiten.filter(v => v.prov === p && this.feind(seite, v.staat));
+      const verteidiger = this.einheiten.filter(v => v.prov === p && !v.aufSee && this.feind(seite, v.staat));
       if (!verteidiger.length) return;
       const summe = (l, w) => l.reduce((s, u) => s + this.kraft(u, w), 0);
       let A = summe(angreifer, 'angriff') * GELAENDE[this.prov[p].t].angriff * (this.winterFaktor ? this.winterFaktor(p, angreifer) : 1);
-      let V = verteidiger.reduce((s, v) => s + this.kraft(v, 'verteidigung') * (1 + 0.3 * v.schanz), 0) * (1 + 0.15 * this.festung[p]);
+      if (angreifer.some(a => a.landung)) A *= 0.5; // Landung von See
+      const lf = this.luftFaktor ? this.luftFaktor(seite, verteidiger[0].staat) : null;
+      if (lf) A *= lf.a;
+      let V = verteidiger.reduce((s, v) => s + this.kraft(v, 'verteidigung') * (1 + 0.3 * v.schanz), 0) * (1 + 0.15 * this.festung[p]) * (lf ? lf.v : 1);
       // Panzerung: wer mehr Panzerung hat als der Gegner Durchschlag, kaempft besser
       const mittel = (l, w) => l.reduce((s, u) => s + TYPEN[u.typ][w], 0) / l.length;
       let schadenAn = 1, schadenVe = 1;
@@ -319,7 +329,7 @@
       for (const v of verteidiger){
         if (v.staerke <= 0.05){ this.vernichten(v, 'aufgerieben'); continue; }
         if (v.org > 0) continue;
-        const ziele = this.prov[p].nb.filter(n => this.freund(this.kontrolle[n], v.staat) && !this.einheiten.some(w => w.prov === n && this.feind(v.staat, w.staat)));
+        const ziele = this.prov[p].nb.filter(n => this.freund(this.kontrolle[n], v.staat) && !this.einheiten.some(w => w.prov === n && !w.aufSee && this.feind(v.staat, w.staat)));
         if (!ziele.length){ this.vernichten(v, 'eingekesselt'); continue; }
         ziele.sort((x, y) => this.einheitenIn(y).filter(w => w.staat === v.staat).length - this.einheitenIn(x).filter(w => w.staat === v.staat).length);
         v.prov = ziele[0]; v.pfad = []; v.fort = 0; v.org = 0;
@@ -343,6 +353,7 @@
       const staaten = new Set();
       for (const k of this.kriege) for (const t of k.split('|')) if (t !== this.spieler || this.automatik) staaten.add(t);
       for (const tag of staaten) this.kiStaat(tag);
+      if (this.see && this.stunde % 240 === 0) for (const tag of staaten) this.kiInvasion(tag);
       // Armeen des Spielers mit eigener Automatik
       if (this.spieler && !this.automatik && this.armeen && this.imKrieg(this.spieler)){
         const auto = new Set(this.armeen.filter(a => a.automatik && a.staat === this.spieler).map(a => a.id));
@@ -350,9 +361,9 @@
       }
     }
     kiStaat(tag, nur){
-      const eigene = nur || this.einheiten.filter(u => u.staat === tag);
+      const eigene = (nur || this.einheiten.filter(u => u.staat === tag)).filter(u => !u.aufSee && !u.plan);
       if (!eigene.length) return;
-      const feindKraft = p => this.einheiten.reduce((s, v) => v.prov === p && this.feind(tag, v.staat) ? s + this.kraft(v, 'verteidigung') * (1 + 0.3 * v.schanz) : s, 0) * (1 + 0.15 * this.festung[p]);
+      const feindKraft = p => this.einheiten.reduce((s, v) => v.prov === p && !v.aufSee && this.feind(tag, v.staat) ? s + this.kraft(v, 'verteidigung') * (1 + 0.3 * v.schanz) : s, 0) * (1 + 0.15 * this.festung[p]);
       const istFront = p => this.freund(this.kontrolle[p], tag) && this.prov[p].nb.some(n => this.feind(tag, this.kontrolle[n]));
       // 0. Eingekesselte Einheiten brechen zur naechsten versorgten Provinz aus
       const vers = this.versorgung && this.versorgung[tag];

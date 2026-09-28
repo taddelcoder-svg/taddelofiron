@@ -78,7 +78,7 @@ const STAATEN = {
   TAN:{ n:'Tannu-Tuwa', f:'#a2c26c', h:[94.44,51.72] },
   SIA:{ n:'Siam', f:'#4c5cb2', h:[100.50,13.75] },
   PHI:{ n:'Philippinen', f:'#d2d2a2', h:[120.98,14.60] },
-  MAN:{ n:'Mandschukuo', f:'#8c7c4c', h:[125.32,43.88] },
+  MAN:{ n:'Mandschukuo', f:'#8c7c4c', h:[125.32,43.88], o:'JAP' },
   CHI:{ n:'China', f:'#bb9d3e', h:[118.80,32.06] },
   SIK:{ n:'Sinkiang', f:'#6c8c8c', h:[87.62,43.83] },
   YUN:{ n:'Yunnan', f:'#a27c9c', h:[102.71,25.04] },

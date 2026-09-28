@@ -1,6 +1,6 @@
 # Epochen – Versionsplan bis 1.0 und danach
 
-Stand: 2026-09-28 · Grundlage: [KONZEPT.md](KONZEPT.md) · Aktuell: **0.4** (Karte, Einheiten, Kampf, Zeit, Wirtschaft, Speichern, Fronten)
+Stand: 2026-09-28 · Grundlage: [KONZEPT.md](KONZEPT.md) · Aktuell: **0.5** (Karte, Einheiten, Kampf, Zeit, Wirtschaft, Speichern, Fronten, Seefahrt, Luftwaffe)
 
 Jede Version ist für sich spielbar und wird auf Render ausgeliefert. Die Reihenfolge folgt der Frage:
 *Was fehlt am meisten, damit eine Partie Spaß macht?* Deshalb kommen Wirtschaft und Speichern zuerst,
@@ -13,7 +13,7 @@ die Weltpolitik folgt danach und muss dann gleich online-fähig gebaut werden.
 | 0.2 ✅ | Erster Schuss | Divisionen, Marsch, Kampf, Gelände, Kapitulation, Zeit | – |
 | 0.3 ✅ | Kriegswirtschaft | Fabriken, Rohstoffe, Produktion, Mannstärke, Speichern | groß |
 | 0.4 ✅ | Fronten | Versorgung, Winter, Armeen + Generäle, Frontlinien, Angriffspfeile, KI 2 | groß |
-| 0.5 | Über das Meer | Seezonen, Häfen, Flotten, Transporte, Invasionen, Luftwaffe light | groß |
+| 0.5 ✅ | Über das Meer | Seezonen, Häfen, Flotten, Transporte, Invasionen, Luftwaffe light | groß |
 | 0.6 | Gemeinsam | Online-Räume bis 8 Spieler, Online-Speicherstände (Supabase) | groß |
 | 0.7 | Weltpolitik | Forschung, Fokusbäume, Fraktionen, Ereignisse, Frieden, Siegpunkte | sehr groß |
 | 0.8 | Mittelalter | Epoche 1200 mit Pergament-Stil, Heeren, Belagerungen, Lehen | sehr groß |
@@ -113,7 +113,9 @@ die Weltpolitik folgt danach und muss dann gleich online-fähig gebaut werden.
 
 ---
 
-## 0.5 „Über das Meer“
+## 0.5 „Über das Meer“ ✅ (2026-09-28)
+
+> Umgesetzt in `public/seefahrt.js`, Seezonen aus `werkzeug/meer-bauen.js` (0,5°-Raster, k-means je Natural-Earth-Meeresgebiet, 293 Zonen mit Namen, Meerengen/Kanäle von Hand). Abweichungen: Häfen = alle eigenen Küstenprovinzen (Hafenstufen später); Luftwaffe ohne Luftregionen als ein Pool je Staat mit Einsatz „Luftüberlegenheit“ oder „Bodenunterstützung“; Träger ohne eigene Luftkämpfe; Mandschukuo ist jetzt Untertan Japans (Landweg nach China). KI: U-Boote jagen Konvois, unterlegene Flotten weichen in den Hafen aus, Staaten ohne Landfront versuchen Invasionen.
 
 **Ziel:** Großbritannien, die USA und Japan können Krieg führen. Inseln und Kolonien werden erreichbar.
 

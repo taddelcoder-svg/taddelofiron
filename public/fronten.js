@@ -106,6 +106,7 @@
       const proProv = new Map();
       for (const u of this.einheiten){ const k = u.prov + '|' + u.staat; proProv.set(k, (proProv.get(k) || 0) + 1); }
       for (const u of this.einheiten){
+        if (u.aufSee){ u.abgeschnitten = 0; continue; }
         const v = this.versorgung[u.staat] ? this.versorgung[u.staat][u.prov] : 1;
         u.vers = Math.round(v * 100) / 100;
         u.abgeschnitten = v === 0 ? (u.abgeschnitten || 0) + 1 : 0;
@@ -206,7 +207,7 @@
       this.armeenAufraeumen();
       for (const a of this.armeen){
         if (a.automatik || (a.staat !== this.spieler && !a.front)) continue;
-        const us = this.armeeEinheiten(a).filter(u => !(u.manuell && u.pfad.length));
+        const us = this.armeeEinheiten(a).filter(u => !(u.manuell && u.pfad.length) && !u.aufSee && !u.plan);
         us.forEach(u => { if (u.manuell && !u.pfad.length) u.manuell = false; });
         const fp = this.frontProvinzen(a);
         if (!fp.length || !us.length) continue;

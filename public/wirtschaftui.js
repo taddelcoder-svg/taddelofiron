@@ -53,6 +53,8 @@
       feld('Ausr. Infanterieausrüstung im Lager', zahl(w.lager.ausruestung));
       feld('Pz Panzer im Lager', zahl(w.lager.panzer));
       feld('Art. Artillerie im Lager', zahl(w.lager.artillerie || 0));
+      feld('Flz. Flugzeuge', zahl(w.lager.flugzeuge || 0));
+      if (sp.konvoiVerlust && sp.konvoiVerlust[tag] > 0.05) feld('Konvoi Importverluste durch Konvoikrieg', Math.round(sp.konvoiVerlust[tag] * 100) + ' %', 'mangel');
     }
 
     // ---------- Fenster ----------
@@ -143,6 +145,17 @@
           el('div', {}, el('b', { text:a.name }), el('div', { class:'klein', text:`${n} Divisionen · General ${a.general.name} · ${a.front ? (a.pfeil ? 'greift an' : 'hält Front') : 'ohne Front'}${a.automatik ? ' · Automatik' : ''}` })),
           el('button', { class:'klein-knopf', text:'Wählen', onclick:() => this.o.waehleArmee(a) })));
       }
+      box.append(el('h3', { text:'Luftwaffe' }), el('p', { class:'klein', text:`${zahl(w.lager.flugzeuge || 0)} Flugzeuge. Luftüberlegenheit stärkt alle Kämpfe (bis ±25 %), Bodenunterstützung vor allem Angriffe.` }));
+      const lw = el('div', { class:'segment' });
+      for (const [k, n] of [['luft', 'Luftüberlegenheit'], ['boden', 'Bodenunterstützung']])
+        lw.append(el('button', { class:(w.luftEinsatz || 'luft') === k ? 'an' : '', onclick:() => { w.luftEinsatz = k; this.aktualisieren(); } }, el('b', { text:n })));
+      box.append(lw);
+      const flotten = (sp.flotten || []).filter(f => f.staat === tag);
+      box.append(el('h3', { text:'Flotten' }));
+      if (!flotten.length) box.append(el('p', { class:'klein', text:'Keine Flotte. Schiffe baust du im Reiter Produktion (Werften).' }));
+      for (const f of flotten) box.append(el('div', { class:'projekt' },
+        el('div', {}, el('b', { text:f.name }), el('div', { class:'klein', text:`${L.schiffAnzahl(f)} Schiffe · ${sp.see.zonen[f.zone].n}` })),
+        el('button', { class:'klein-knopf', text:'Wählen', onclick:() => this.o.waehleFlotte(f) })));
       box.append(el('h3', { text:'Wehrgesetz' }), el('p', { class:'klein', text:`Mannstärke: ${mio(k.mann)} frei von ${mio(k.mannMax)}. Mobilmachung bindet 10 % der zivilen Fabriken.` }));
       const wg = el('div', { class:'segment' });
       for (let i = 1; i <= 3; i++){

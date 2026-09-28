@@ -12,7 +12,13 @@
   const WAREN = {
     ausruestung:{ n:'Infanterieausrüstung', kurz:'Ausrüstung', pp:0.5, roh:{ stahl:0.5 } },
     panzer:{ n:'Panzer', kurz:'Panzer', pp:8, roh:{ stahl:1, oel:0.5, gummi:0.3 } },
-    artillerie:{ n:'Artillerie', kurz:'Artillerie', pp:3.5, roh:{ stahl:1 } }
+    artillerie:{ n:'Artillerie', kurz:'Artillerie', pp:3.5, roh:{ stahl:1 } },
+    flugzeuge:{ n:'Flugzeuge', kurz:'Flugzeuge', pp:1.5, roh:{ oel:0.3, stahl:0.3 } },
+    schiff_zr:{ n:'Zerstörer', kurz:'Zerstörer', pp:400, roh:{ stahl:1 }, schiff:'zr' },
+    schiff_ub:{ n:'U-Boote', kurz:'U-Boote', pp:300, roh:{ stahl:1 }, schiff:'ub' },
+    schiff_kr:{ n:'Kreuzer', kurz:'Kreuzer', pp:1200, roh:{ stahl:1.5 }, schiff:'kr' },
+    schiff_sl:{ n:'Schlachtschiffe', kurz:'Schlachtschiffe', pp:5000, roh:{ stahl:2 }, schiff:'sl' },
+    schiff_tr:{ n:'Flugzeugträger', kurz:'Träger', pp:5000, roh:{ stahl:1.5, oel:0.5 }, schiff:'tr' }
   };
   const ROHSTOFFE = { stahl:'Stahl', oel:'Öl', gummi:'Gummi' };
   const BAUTEN = {
@@ -100,7 +106,7 @@
       if (w.handel) for (const r in k.bedarf){
         const fehlt = Math.max(0, k.bedarf[r] - k.roh[r]);
         const zf = Math.min(freiZf, Math.ceil(fehlt / HANDEL_JE_ZF));
-        k.import[r] = Math.min(fehlt, zf * HANDEL_JE_ZF); freiZf -= zf; k.handelZf += zf;
+        k.import[r] = Math.min(fehlt, zf * HANDEL_JE_ZF) * (1 - ((this.konvoiVerlust && this.konvoiVerlust[tag]) || 0)); freiZf -= zf; k.handelZf += zf;
       }
       k.bauZf = Math.max(0, Math.floor(freiZf));
       k.mfFrei = Math.max(0, Math.floor(k.mf) - w.linien.reduce((s, l) => s + l.mf, 0));
@@ -126,7 +132,9 @@
           let f = 1; for (const r in ware.roh) f = Math.min(f, k.faktor[r]);
           const menge = l.mf * PP_JE_MF * l.eff * (0.5 + 0.5 * f) / ware.pp;
           l.rest = (l.rest || 0) + menge;
-          const ganz = Math.floor(l.rest); l.rest -= ganz; w.lager[l.ware] += ganz;
+          const ganz = Math.floor(l.rest); l.rest -= ganz;
+          if (ware.schiff){ if (ganz > 0 && this.schiffFertig) this.schiffFertig(tag, ware.schiff, ganz); }
+          else w.lager[l.ware] = (w.lager[l.ware] || 0) + ganz;
           l.eff = Math.min(1, l.eff + 0.004);
         }
         // Bau
@@ -172,7 +180,7 @@
     verstaerken(tag, w, k){
       let mann = k.mann;
       for (const u of this.einheiten){
-        if (u.staat !== tag || u.staerke >= 1 || u.kampf || !this.freund(this.kontrolle[u.prov], tag)) continue;
+        if (u.staat !== tag || u.staerke >= 1 || u.kampf || u.aufSee || !this.freund(this.kontrolle[u.prov], tag)) continue;
         const kost = AUSHEBUNG[u.typ];
         let d = Math.min(0.05, 1 - u.staerke);
         if (kost.ausruestung) d = Math.min(d, w.lager.ausruestung / kost.ausruestung);
@@ -241,6 +249,10 @@
       if (mf - nPz - nArt > 0) w.linien.push({ ware:'ausruestung', mf:mf - nPz - nArt, eff:0.5, rest:0 });
       if (nPz > 0) w.linien.push({ ware:'panzer', mf:nPz, eff:0.5, rest:0 });
       if (nArt > 0) w.linien.push({ ware:'artillerie', mf:nArt, eff:0.5, rest:0 });
+      // Luftwaffe und Werften fuer groessere Staaten
+      const erste = w.linien[0];
+      if (erste && mf >= 10){ const n = Math.round(mf * 0.1); erste.mf -= n; w.linien.push({ ware:'flugzeuge', mf:n, eff:0.5, rest:0 }); }
+      if (erste && mf >= 10 && this.flotten && this.flotten.some(f => f.staat === tag)){ const n = Math.max(1, Math.round(mf * 0.08)); erste.mf -= n; w.linien.push({ ware:tag === 'GER' ? 'schiff_ub' : 'schiff_zr', mf:n, eff:0.5, rest:0 }); }
     },
     kiWirtschaft(tag, k){
       const w = this.wi[tag], krieg = this.imKrieg(tag);

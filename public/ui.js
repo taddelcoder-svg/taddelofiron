@@ -4,20 +4,22 @@
   const $ = id => document.getElementById(id);
   const merken = (k, v) => { try { v === undefined ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
   const holen = k => { try { return localStorage.getItem(k); } catch { return null; } };
-  const { Spiel, TYPEN, GELAENDE, ROHSTOFFE } = window.EpochenLogik;
+  const { Spiel, TYPEN, GELAENDE, ROHSTOFFE, SCHIFFE } = window.EpochenLogik;
   const Speicher = window.EpochenSpeicher;
 
-  let prov, welt;
+  let prov, welt, meer;
   try {
-    [prov, welt] = await Promise.all([
+    [prov, welt, meer] = await Promise.all([
       fetch('/daten/provinzen.json').then(r => r.json()),
-      fetch('/daten/epochen/1936/welt.json').then(r => r.json())
+      fetch('/daten/epochen/1936/welt.json').then(r => r.json()),
+      fetch('/daten/meer.json').then(r => r.json())
     ]);
   } catch (e){
     $('laden').textContent = 'Die Karte konnte nicht geladen werden. Bitte Seite neu laden.';
     return;
   }
   const karte = new EpochenKarte.Karte($('karte'), prov, welt);
+  karte.setzeMeer(meer);
   let spielerTag = holen('epochen.nation');
   if (spielerTag && !welt.staaten[spielerTag]) spielerTag = null;
   $('laden').classList.add('weg');
@@ -51,8 +53,10 @@
     }
   }
   let spiel;
-  try { spiel = new Spiel(prov.provinzen, welt, stand ? { stand } : { spieler:spielerTag, seed:Date.now() % 100000 }); }
-  catch (e){ spiel = new Spiel(prov.provinzen, welt, { spieler:spielerTag, seed:Date.now() % 100000 }); stand = null; }
+  try { spiel = new Spiel(prov.provinzen, welt, stand ? { stand, meer } : { spieler:spielerTag, seed:Date.now() % 100000, meer }); }
+  catch (e){ spiel = new Spiel(prov.provinzen, welt, { spieler:spielerTag, seed:Date.now() % 100000, meer }); stand = null; }
+  // Aeltere Spielstaende ohne Flotten: Startflotten ergaenzen
+  if (stand && !stand.see && spiel.seeNachAufstellung){ spiel.seeNachAufstellung(); }
   if (stand){ spielerTag = spiel.spieler; $('automatik').checked = !!spiel.automatik; }
   karte.besitz = spiel.kontrolle; karte.eigentuemer = spiel.besitz; karte.baueGrenzen();
   spiel.provName = id => karte.prov[id].n;
@@ -138,7 +142,17 @@
 
   // ---------- Tooltip ----------
   const tipp = $('tipp');
-  karte.beiHover = (id, p) => {
+  karte.beiHover = (id, p, zone) => {
+    if (id < 0 && zone >= 0){
+      tipp.innerHTML = ''; tipp.append(meer.zonen[zone].n);
+      if (spielerTag && spiel.imKrieg(spielerTag)){
+        const m = spiel.seeMacht(spielerTag, zone), k = document.createElement('span'); k.className = 'klein';
+        k.textContent = ` · Seeüberlegenheit ${Math.round(m.anteil * 100)} %`; tipp.append(k);
+      }
+      tipp.hidden = false;
+      tipp.style.left = Math.min(innerWidth - tipp.offsetWidth - 8, p[0] + 14) + 'px'; tipp.style.top = Math.min(innerHeight - 40, p[1] + 16) + 'px';
+      return;
+    }
     if (id < 0){ tipp.hidden = true; return; }
     const s = karte.staat(karte.besitz[id]);
     tipp.innerHTML = '';
@@ -329,13 +343,20 @@
     const us = ansicht.ausgewaehlt().filter(u => u.staat === spielerTag);
     if (ziel < 0 || !us.length) return false;
     const n = spiel.bewegen(us.map(u => u.id), ziel);
-    if (!n) meldungZeigen({ stunde:spiel.stunde, text:`Kein Weg nach ${karte.prov[ziel].n} (neutrales Gebiet oder übers Meer).` });
+    if (!n){
+      const t = spiel.seeTransport(us.map(u => u.id), ziel);
+      if (t.ok) meldungZeigen({ stunde:spiel.stunde, text:`${t.invasion ? 'Invasion' : 'Seetransport'} nach ${karte.prov[ziel].n}: ${t.ok} Divisionen, etwa ${t.tage} Tage.` });
+      else meldungZeigen({ stunde:spiel.stunde, text:t.grund || `Kein Weg nach ${karte.prov[ziel].n}.` });
+    }
     aktualisiereEinheiten(); karte.schmutzig = true;
     return true;
   }
 
-  karte.beiKlick = (id, e, p) => {
+  karte.beiKlick = (id, e, p, zone) => {
     const st = ansicht.trefferAn(p);
+    if (st && st.flotte){ waehleFlotte(st.flotte); return; }
+    if (flotteId && e.pointerType !== 'mouse' && zone >= 0){ flotteFahren(zone); return; }
+    if (flotteId && !st){ waehleFlotte(null); }
     const eigeneAuswahl = ansicht.ausgewaehlt().some(u => u.staat === spielerTag);
     // Touch: mit eigener Auswahl ist jeder Tipp auf die Karte (auch auf andere Steine) ein Marschbefehl
     if (e.pointerType !== 'mouse' && eigeneAuswahl && (id >= 0 || st) && !(st && st.ids.every(i => ansicht.auswahl.has(i)))){
@@ -350,10 +371,46 @@
     abwaehlen();
     zeigeProvinz(id);
   };
-  karte.beiRechtsklick = id => { if (!befehl(id) && id >= 0) zeigeProvinz(id); };
+  karte.beiRechtsklick = (id, p, zone) => {
+    if (flotteId && zone >= 0){ flotteFahren(zone); return; }
+    if (!befehl(id) && id >= 0) zeigeProvinz(id);
+  };
+  // ---------- Flotten ----------
+  let flotteId = null;
+  const flotte = () => flotteId && spiel.flotten.find(f => f.id === flotteId);
+  function waehleFlotte(id){
+    flotteId = id; ansicht.flotteGewaehlt = id;
+    if (id){ abwaehlen(); zeigeProvinz(-1); }
+    $('flottePanel').hidden = !id; aktualisiereFlotte(); karte.schmutzig = true;
+  }
+  function flotteFahren(zone){
+    const f = flotte(); if (!f || f.staat !== spielerTag) return;
+    if (!spiel.flotteBewegen(f.id, zone)) meldungZeigen({ stunde:spiel.stunde, text:'Kein Seeweg dorthin.' });
+    aktualisiereFlotte(); karte.schmutzig = true;
+  }
+  function aktualisiereFlotte(){
+    const f = flotte();
+    if (!f){ if (flotteId){ flotteId = null; ansicht.flotteGewaehlt = null; } $('flottePanel').hidden = true; return; }
+    const L = EpochenLogik, eigen = f.staat === spielerTag;
+    $('fStaat').textContent = karte.staat(f.staat).n + ' · ' + meer.zonen[f.zone].n;
+    $('fName').textContent = f.name;
+    $('fSchiffe').textContent = Object.entries(f.schiffe).filter(([, n]) => n).map(([t, n]) => `${n} ${SCHIFFE[t].n}`).join(' · ');
+    const hp = L.staerkeFlotte(f, 'hp');
+    $('fSchaden').style.width = Math.round(Math.min(1, hp ? f.schaden / hp * 3 : 0) * 100) + '%';
+    const m = spielerTag ? spiel.seeMacht(f.staat, f.zone) : null;
+    $('fStatus').textContent = (f.pfad.length ? `Fährt nach ${meer.zonen[f.pfad[f.pfad.length - 1]].n}` : L.AUFTRAEGE[f.auftrag]) + (m && spiel.imKrieg(f.staat) ? ` · Seeüberlegenheit hier ${Math.round(m.anteil * 100)} %` : '');
+    document.querySelectorAll('#fAuftrag button').forEach(b => { b.classList.toggle('an', b.dataset.auftrag === f.auftrag); b.disabled = !eigen; });
+    $('fHinweis').textContent = !eigen ? 'Fremde Flotte – nur ansehen.' : beruehrung ? 'Tippe auf eine Seezone, um dorthin zu fahren.' : 'Rechtsklick auf eine Seezone: dorthin fahren.';
+    $('fHeim').hidden = !eigen; $('fHalt').hidden = !eigen;
+  }
+  document.querySelectorAll('#fAuftrag button').forEach(b => b.addEventListener('click', () => { const f = flotte(); if (f){ spiel.flotteAuftrag(f.id, b.dataset.auftrag); aktualisiereFlotte(); } }));
+  $('fZu').addEventListener('click', () => waehleFlotte(null));
+  $('fHalt').addEventListener('click', () => { const f = flotte(); if (f){ f.pfad = []; aktualisiereFlotte(); karte.schmutzig = true; } });
+  $('fHeim').addEventListener('click', () => { const f = flotte(); if (f){ const z = spiel.heimatZone(f.staat); if (z >= 0) flotteFahren(z); f.auftrag = 'hafen'; aktualisiereFlotte(); } });
 
   function aktualisierePanels(){
     wui.aktualisieren();
+    if (flotteId) aktualisiereFlotte();
     if (!$('einheitPanel').hidden) aktualisiereEinheiten();
     if (!$('panel').hidden && !kriegBestaetigen) aktualisiereProvinz();
     zeigeSpieler();
@@ -362,6 +419,7 @@
   // ---------- Wirtschaft ----------
   const wui = new WirtschaftUI({ spiel:() => spiel, spieler:() => spielerTag, karte, provName:id => karte.prov[id].n,
     meldung:text => meldungZeigen({ stunde:spiel.stunde, text }),
+    waehleFlotte:f => { waehleFlotte(f.id); karte.kamera.x = meer.zonen[f.zone].l[0]; karte.kamera.y = EpochenKarte.projY(meer.zonen[f.zone].l[1]); karte.kamera.z = Math.max(karte.kamera.z, 10); karte.begrenzen(); },
     waehleArmee:a => { const us = spiel.armeeEinheiten(a); waehle(us.map(x => x.id), false); if (us.length) karte.fliegeZu(us[0].prov, Math.max(karte.kamera.z, 20)); } });
   wui.aktualisieren();
 
