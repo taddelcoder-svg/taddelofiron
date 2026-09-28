@@ -52,6 +52,7 @@
       feld('Mann Mannstärke verfügbar', mio(b.mann), b.mann < 30000 ? 'mangel' : '');
       feld('Ausr. Infanterieausrüstung im Lager', zahl(w.lager.ausruestung));
       feld('Pz Panzer im Lager', zahl(w.lager.panzer));
+      feld('Art. Artillerie im Lager', zahl(w.lager.artillerie || 0));
     }
 
     // ---------- Fenster ----------
@@ -121,7 +122,7 @@
       const knoepfe = el('div', { class:'aushebung' });
       for (const [typ, kost] of Object.entries(L.AUSHEBUNG)){
         const grund = sp.kannAusheben(tag, typ);
-        const teile = [`${zahl(kost.ausruestung)} Ausr.`]; if (kost.panzer) teile.push(`${kost.panzer} Pz`); teile.push(`${zahl(kost.mann)} Mann`);
+        const teile = [`${zahl(kost.ausruestung)} Ausr.`]; if (kost.panzer) teile.push(`${kost.panzer} Pz`); if (kost.artillerie) teile.push(`${kost.artillerie} Art.`); teile.push(`${zahl(kost.mann)} Mann`);
         knoepfe.append(el('button', { class:grund ? 'aus' : 'haupt', title:grund || '', onclick:() => {
           if (grund){ this.o.meldung(grund + '.'); return; }
           sp.ausheben(tag, typ); this.aktualisieren();
@@ -132,6 +133,15 @@
         const l = el('ul', { class:'liste' });
         w.ausbildung.forEach(a => l.append(el('li', { text:`${L.TYPEN[a.typ].n} – noch ${a.tage} Tage` })));
         box.append(el('h3', { text:'In Ausbildung' }), l);
+      }
+      const armeen = (sp.armeen || []).filter(a => a.staat === tag);
+      box.append(el('h3', { text:'Armeen' }));
+      if (!armeen.length) box.append(el('p', { class:'klein', text:'Noch keine Armee. Truppen auf der Karte wählen und „Armee bilden“ drücken.' }));
+      for (const a of armeen){
+        const n = sp.armeeEinheiten(a).length;
+        box.append(el('div', { class:'projekt' },
+          el('div', {}, el('b', { text:a.name }), el('div', { class:'klein', text:`${n} Divisionen · General ${a.general.name} · ${a.front ? (a.pfeil ? 'greift an' : 'hält Front') : 'ohne Front'}${a.automatik ? ' · Automatik' : ''}` })),
+          el('button', { class:'klein-knopf', text:'Wählen', onclick:() => this.o.waehleArmee(a) })));
       }
       box.append(el('h3', { text:'Wehrgesetz' }), el('p', { class:'klein', text:`Mannstärke: ${mio(k.mann)} frei von ${mio(k.mannMax)}. Mobilmachung bindet 10 % der zivilen Fabriken.` }));
       const wg = el('div', { class:'segment' });

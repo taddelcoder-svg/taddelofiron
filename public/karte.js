@@ -5,6 +5,7 @@
   const RAD = Math.PI / 180;
   // Miller-Projektion, Ergebnis in "Grad"-Einheiten (x = Laenge, y nach unten)
   const projY = lat => -1.25 * Math.log(Math.tan(Math.PI / 4 + 0.4 * lat * RAD)) / RAD;
+  const unprojY = y => (Math.atan(Math.exp(-y * RAD / 1.25)) - Math.PI / 4) / 0.4 / RAD;
   const WELT_B = 360;
   const Y_MIN = projY(84), Y_MAX = projY(-60);
 
@@ -157,6 +158,18 @@
       const k = this.kamera;
       return [k.x + (px - this.cv.clientWidth / 2) / k.z, k.y + (py - this.cv.clientHeight / 2) / k.z];
     }
+    zuLonLat(px, py){ const [x, y] = this.zuWelt(px, py); return [((x + 180) % 360 + 360) % 360 - 180, unprojY(y)]; }
+    zeichneStrich(c, B, H){
+      if (!this.strich || this.strich.length < 1) return;
+      const k = this.kamera, farbe = this.zeichenModus ? this.zeichenModus.farbe : '#ffd640';
+      const pts = this.strich.map(([lon, lat]) => {
+        let x = lon; while (x - k.x > 180) x -= 360; while (x - k.x < -180) x += 360;
+        return [B / 2 + (x - k.x) * k.z, H / 2 + (projY(lat) - k.y) * k.z];
+      });
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = 9; c.beginPath(); pts.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); c.stroke();
+      c.strokeStyle = farbe; c.lineWidth = 5; c.stroke();
+    }
     zoomAn(px, py, faktor){
       const [wx, wy] = this.zuWelt(px, py);
       this.kamera.z *= faktor; this.begrenzen();
@@ -231,6 +244,8 @@
         c.setTransform(dpr, 0, 0, dpr, 0, 0);
         this.beiZeichnen(c, (wx, wy, v) => [B / 2 + (wx + v - k.x) * k.z, H / 2 + (wy - k.y) * k.z], this.versaetze());
       }
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      this.zeichneStrich(c, B, H);
     }
     zeichneText(B, H){
       const c = this.ctx, s = this.stil, k = this.kamera, dpr = this.dpr;
@@ -302,12 +317,17 @@
       const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
       cv.addEventListener('pointerdown', e => {
         cv.setPointerCapture(e.pointerId);
+        if (this.zeichenModus && e.isPrimary){ this.strich = [this.zuLonLat(...pos(e))]; this.strichPx = pos(e); this.schmutzig = true; return; }
         zeiger.set(e.pointerId, pos(e)); bewegt = 0;
         if (zeiger.size === 1) zug = pos(e);
         if (zeiger.size === 2){ const [a, b] = [...zeiger.values()]; pinch = { d:Math.hypot(a[0] - b[0], a[1] - b[1]) }; zug = null; }
       });
       cv.addEventListener('pointermove', e => {
         const p = pos(e);
+        if (this.strich){
+          if (Math.hypot(p[0] - this.strichPx[0], p[1] - this.strichPx[1]) > 6){ this.strich.push(this.zuLonLat(...p)); this.strichPx = p; this.schmutzig = true; }
+          return;
+        }
         if (zeiger.has(e.pointerId)){
           const alt = zeiger.get(e.pointerId); zeiger.set(e.pointerId, p);
           if (pinch && zeiger.size === 2){
@@ -328,6 +348,12 @@
         }
       });
       const ende = e => {
+        if (this.strich){
+          const punkte = this.strich, modus = this.zeichenModus;
+          this.strich = null; this.zeichenModus = null; this.schmutzig = true;
+          if (modus && e.type === 'pointerup') modus.beiFertig(punkte); else if (modus && modus.beiAbbruch) modus.beiAbbruch();
+          return;
+        }
         const war = zeiger.has(e.pointerId);
         zeiger.delete(e.pointerId);
         if (zeiger.size < 2) pinch = null;
@@ -378,5 +404,5 @@
     setzeStil(name){ if (STILE[name]){ this.stil = STILE[name]; this.schmutzig = true; } }
   }
 
-  window.EpochenKarte = { Karte, STILE, projY };
+  window.EpochenKarte = { Karte, STILE, projY, unprojY };
 })();

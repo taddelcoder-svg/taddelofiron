@@ -281,6 +281,8 @@ async function main(){
     liste.push({ g, p, mp:geomMP(g) });
   }
   const nb = liste.map(() => new Set());
+  const kueste = new Uint8Array(liste.length); // Provinz hat eine Kuestenkante (Bogen mit nur einem Nutzer)
+  for (const s of nutzer.values()) if (s.size === 1) kueste[[...s][0]] = 1;
   for (const s of nutzer.values()){ const l = [...s]; for (const a of l) for (const b of l) if (a !== b) nb[a].add(b); }
   const provOut = liste.map((e, id) => {
     const fl = mpFlaeche(e.mp);
@@ -332,7 +334,7 @@ async function main(){
     quelle:'Natural Earth Admin-1 (gemeinfrei), Grenzschnitte: historical-basemaps (GPL-3.0)',
     transform:t.transform,
     arcs:t.arcs,
-    provinzen:provOut.map(p => ({ n:p.n, l:p.l, a:p.a, t:p.t, nb:p.nb, g:p.g.type === 'Polygon' ? [p.g.arcs] : p.g.arcs }))
+    provinzen:provOut.map(p => ({ n:p.n, l:p.l, a:p.a, t:p.t, k:kueste[p.id], nb:p.nb, g:p.g.type === 'Polygon' ? [p.g.arcs] : p.g.arcs }))
   };
   fs.writeFileSync(path.join(DATEN, 'provinzen.json'), JSON.stringify(ausgabe));
 

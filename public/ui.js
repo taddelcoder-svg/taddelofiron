@@ -144,7 +144,8 @@
     tipp.innerHTML = '';
     tipp.append(karte.prov[id].n, ' ');
     const k = document.createElement('span'); k.className = 'klein';
-    k.textContent = '· ' + s.n + (karte.eigentuemer[id] !== karte.besitz[id] ? ' (besetzt)' : '') + ' · ' + GELAENDE[spiel.prov[id].t].n;
+    const w = spiel.wetter(id);
+    k.textContent = '· ' + s.n + (karte.eigentuemer[id] !== karte.besitz[id] ? ' (besetzt)' : '') + ' · ' + GELAENDE[spiel.prov[id].t].n + (w === 'winter' ? ' · Winter' : w === 'schlamm' ? ' · Schlamm' : '');
     tipp.append(k);
     tipp.hidden = false;
     const x = Math.min(innerWidth - tipp.offsetWidth - 8, p[0] + 14), y = Math.min(innerHeight - 40, p[1] + 16);
@@ -264,10 +265,64 @@
     else if (marsch.length){ const z = marsch[0].pfad[marsch[0].pfad.length - 1]; status = `Marschiert nach ${karte.prov[z].n}`; }
     $('eStatus').textContent = status;
     const eigene = tag === spielerTag;
+    // Versorgung
+    const kessel = us.filter(x => x.abgeschnitten >= 1), vmin = Math.min(...us.map(x => x.vers === undefined ? 1 : x.vers));
+    $('eVersorgung').textContent = kessel.length ? `⚠ ${kessel.length} eingekesselt seit ${Math.max(...kessel.map(x => x.abgeschnitten))} Tagen – ab 3 Tagen Verluste`
+      : `Versorgung ${Math.round(vmin * 100)} %${us.some(x => x.ueberlast) ? ' · überlastet (zu viele Divisionen in einer Provinz)' : ''}${spiel.wetter(us[0].prov) === 'winter' ? ' · Winter' : spiel.wetter(us[0].prov) === 'schlamm' ? ' · Schlamm' : ''}`;
+    $('eVersorgung').classList.toggle('mangel', kessel.length > 0);
+    // Armee
+    const armeeIds = new Set(us.map(x => x.armee || 0));
+    const armee = armeeIds.size === 1 && us[0].armee ? spiel.armeeMit(us[0].armee) : null;
+    ansicht.gewaehlteArmee = armee ? armee.id : null;
+    $('eArmee').hidden = !armee || !eigene;
+    $('eArmeeBilden').hidden = !eigene || !!armee;
+    $('aAufloesen').hidden = !eigene || !armee;
+    if (armee){
+      const g = armee.general, e = EpochenLogik.EIGENSCHAFTEN[g.eigenschaft];
+      $('aName').textContent = armee.name + ' · ' + spiel.armeeEinheiten(armee).length + ' Divisionen';
+      $('aGeneral').textContent = `General ${g.name} · ${'★'.repeat(g.fertigkeit)}${'☆'.repeat(4 - g.fertigkeit)} · ${e.n} (${e.text})`;
+      $('aAuto').checked = !!armee.automatik;
+      $('aLoeschen').hidden = !armee.front;
+      $('aPfeil').hidden = !armee.front;
+    }
     $('eHinweis').textContent = !eigene ? 'Fremde Truppen – nur ansehen.' : beruehrung ? 'Tippe auf das Ziel, um zu marschieren. × hebt die Auswahl auf.' : 'Rechtsklick auf das Ziel: Marschbefehl. Umschalt+Klick: weitere Truppen.';
     $('eHalt').hidden = !eigene; $('eAlle').hidden = !eigene;
   }
   $('ePanelZu').addEventListener('click', abwaehlen);
+  // ---------- Armeen, Fronten, Pfeile ----------
+  const gewaehlteArmee = () => ansicht.gewaehlteArmee ? spiel.armeeMit(ansicht.gewaehlteArmee) : null;
+  $('eArmeeBilden').addEventListener('click', () => {
+    const us = ansicht.ausgewaehlt().filter(x => x.staat === spielerTag);
+    const a = spiel.armeeBilden(spielerTag, us.map(x => x.id));
+    if (!a) return;
+    meldungZeigen({ stunde:spiel.stunde, text:`${a.name} gebildet unter General ${a.general.name}. Jetzt eine Front ziehen.` + (us.length > 24 ? ' (höchstens 24 Divisionen je Armee)' : '') });
+    waehle(spiel.armeeEinheiten(a).map(x => x.id), false);
+  });
+  $('aAufloesen').addEventListener('click', () => { const a = gewaehlteArmee(); if (a){ spiel.armeeAufloesen(a.id); aktualisiereEinheiten(); karte.schmutzig = true; } });
+  $('aLoeschen').addEventListener('click', () => { const a = gewaehlteArmee(); if (a){ spiel.frontLoeschen(a.id); aktualisiereEinheiten(); karte.schmutzig = true; } });
+  $('aAuto').addEventListener('change', e => { const a = gewaehlteArmee(); if (a) a.automatik = e.target.checked; });
+  function zeichnen(art){
+    const a = gewaehlteArmee(); if (!a) return;
+    const hinweis = art === 'front' ? 'Zieh eine Linie entlang der Grenze, die die Armee halten soll.' : 'Zieh einen Pfeil von der Front ins Feindesland – die Armee greift entlang an.';
+    $('zeichenHinweis').textContent = hinweis + (beruehrung ? '' : ' Esc bricht ab.'); $('zeichenHinweis').hidden = false;
+    $('karte').classList.add('zeichnen');
+    const fertig = () => { $('zeichenHinweis').hidden = true; $('karte').classList.remove('zeichnen'); };
+    karte.zeichenModus = { farbe:art === 'front' ? '#3fb24f' : '#d9432f', beiAbbruch:fertig, beiFertig:punkte => {
+      fertig();
+      if (art === 'front'){
+        const ok = spiel.frontSetzen(a.id, punkte);
+        meldungZeigen({ stunde:spiel.stunde, text:ok ? `${a.name}: Front mit ${spiel.frontProvinzen(a).length} Provinzen.` : 'Keine eigene Grenzprovinz in der Nähe der Linie.' });
+      } else {
+        if (punkte.length < 2){ meldungZeigen({ stunde:spiel.stunde, text:'Der Pfeil ist zu kurz.' }); return; }
+        spiel.pfeilSetzen(a.id, punkte);
+        meldungZeigen({ stunde:spiel.stunde, text:`${a.name}: Angriff befohlen.` + (spiel.imKrieg(spielerTag) ? '' : ' (Greift erst an, wenn Krieg herrscht.)') });
+      }
+      aktualisiereEinheiten(); karte.schmutzig = true;
+    } };
+  }
+  $('aFront').addEventListener('click', () => zeichnen('front'));
+  $('aPfeil').addEventListener('click', () => zeichnen('pfeil'));
+  addEventListener('keydown', e => { if (e.key === 'Escape' && karte.zeichenModus){ const m = karte.zeichenModus; karte.zeichenModus = null; karte.strich = null; m.beiAbbruch(); karte.schmutzig = true; } });
   $('eHalt').addEventListener('click', () => { spiel.anhalten([...ansicht.auswahl]); aktualisiereEinheiten(); karte.schmutzig = true; });
   $('eAlle').addEventListener('click', () => waehle(spiel.einheiten.filter(u => u.staat === spielerTag).map(u => u.id), false));
   function befehl(ziel){
@@ -306,7 +361,8 @@
 
   // ---------- Wirtschaft ----------
   const wui = new WirtschaftUI({ spiel:() => spiel, spieler:() => spielerTag, karte, provName:id => karte.prov[id].n,
-    meldung:text => meldungZeigen({ stunde:spiel.stunde, text }) });
+    meldung:text => meldungZeigen({ stunde:spiel.stunde, text }),
+    waehleArmee:a => { const us = spiel.armeeEinheiten(a); waehle(us.map(x => x.id), false); if (us.length) karte.fliegeZu(us[0].prov, Math.max(karte.kamera.z, 20)); } });
   wui.aktualisieren();
 
   // ---------- Kartenmodi ----------
@@ -315,7 +371,13 @@
     ['politisch', 'Politisch', null],
     ['gelaende', 'Gelände', id => GEL_FARBE[spiel.prov[id].t]],
     ['industrie', 'Industrie', id => { const x = Math.min(1, Math.sqrt(spiel.zf[id] + spiel.mf[id]) / 5); return `rgb(${Math.round(236 - 120 * x)},${Math.round(228 - 170 * x)},${Math.round(207 - 180 * x)})`; }],
-    ['rohstoffe', 'Rohstoffe', id => spiel.roh.oel[id] ? '#2b2b2b' : spiel.roh.gummi[id] ? '#3f8a4a' : spiel.roh.stahl[id] ? '#6f8296' : '#e6dcc0']
+    ['rohstoffe', 'Rohstoffe', id => spiel.roh.oel[id] ? '#2b2b2b' : spiel.roh.gummi[id] ? '#3f8a4a' : spiel.roh.stahl[id] ? '#6f8296' : '#e6dcc0'],
+    ['versorgung', 'Versorgung', id => {
+      const v = spielerTag && spiel.versorgung && spiel.versorgung[spielerTag];
+      if (!v || !spiel.freund(spiel.kontrolle[id], spielerTag)) return '#d8d2c2';
+      const x = v[id]; return x === 0 ? '#c0392b' : `rgb(${Math.round(230 - 150 * x)},${Math.round(120 + 90 * x)},${Math.round(70 + 20 * x)})`;
+    }],
+    ['wetter', 'Wetter', id => { const w = spiel.wetter(id); return w === 'winter' ? '#f4f8ff' : w === 'schlamm' ? '#8a6a45' : '#cfd9a2'; }]
   ];
   let modus = 0;
   function setzeModus(i){ modus = i; karte.modusFarbe = MODI[i][2]; $('modusKnopf').textContent = 'Karte: ' + MODI[i][1]; karte.schmutzig = true; }

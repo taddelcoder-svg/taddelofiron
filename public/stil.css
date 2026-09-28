@@ -77,6 +77,12 @@ table.roh td:first-child,table.roh th:first-child{text-align:left}
 .platz{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--rand)}
 .platz>div{flex:1}
 .platz button{padding:5px 10px}
+#eArmee{border-top:1px solid var(--rand);margin-top:8px;padding-top:8px}
+#eArmee[hidden],#zeichenHinweis[hidden]{display:none}
+.armee-kopf{margin-bottom:8px}
+#zeichenHinweis{position:fixed;top:100px;left:50%;transform:translateX(-50%);z-index:8;background:#ffd640;color:#1b1a14;font-weight:600;
+  padding:8px 14px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.4);max-width:calc(100% - 24px);text-align:center}
+#karte.zeichnen{cursor:crosshair}
 #tipp{position:fixed;pointer-events:none;z-index:6;background:rgba(20,22,26,.92);border:1px solid var(--rand);border-radius:6px;
   padding:4px 9px;font-size:13px;white-space:nowrap}
 #tipp .klein{color:var(--leise)}

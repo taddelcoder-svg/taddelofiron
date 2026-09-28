@@ -3,6 +3,7 @@
 //   node werkzeug/simtest.js [seed] [jahre]
 const L = require('../public/logik.js');
 require('../public/wirtschaft.js');
+require('../public/fronten.js');
 const prov = require('../daten/provinzen.json').provinzen;
 const welt = require('../daten/epochen/1936/welt.json');
 const seed = +process.argv[2] || 1, jahre = +process.argv[3] || 3;

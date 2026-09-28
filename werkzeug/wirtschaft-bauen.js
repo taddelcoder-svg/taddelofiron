@@ -119,7 +119,7 @@ for (let i = 0; i < n; i++){
   if (t === 'FRA' && grenzt(i, ['GER'])) fest[i] = 3;
   else if (t === 'FRA' && grenzt(i, ['ITA', 'SWI', 'BEL'])) fest[i] = 1;
   else if (t === 'CZE' && grenzt(i, ['GER', 'AUT', 'HUN'])) fest[i] = 2;
-  else if (t === 'FIN' && grenzt(i, ['SOV']) && P[i].l[1] < 62) fest[i] = 2;
+  else if (t === 'FIN' && grenzt(i, ['SOV']) && P[i].l[1] < 62) fest[i] = 3;
   else if ((t === 'BEL' || t === 'GER') && grenzt(i, t === 'BEL' ? ['GER'] : ['FRA'])) fest[i] = 1;
 }
 

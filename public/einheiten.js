@@ -9,6 +9,53 @@
       this.auswahl = new Set();   // Einheiten-IDs
       this.treffer = [];          // Bildschirm-Rechtecke der Zaehlsteine
       karte.beiZeichnen = (c, ort, versaetze) => this.zeichnen(c, ort, versaetze);
+      // Grenzboegen zwischen zwei Provinzen (fuer Frontlinien)
+      this.paarBoegen = new Map();
+      karte.bogenNutzer.forEach((nutzer, i) => {
+        if (nutzer.length !== 2) return;
+        const key = Math.min(...nutzer) + '|' + Math.max(...nutzer);
+        (this.paarBoegen.get(key) || this.paarBoegen.set(key, []).get(key)).push(i);
+      });
+      this.gewaehlteArmee = null;
+    }
+    zeichneArmeen(c, ort, versaetze){
+      const sp = this.spiel, k = this.karte;
+      if (!sp.armeen) return;
+      const projY = window.EpochenKarte.projY;
+      for (const a of sp.armeen){
+        if (a.staat !== sp.spieler) continue;
+        const gewaehlt = this.gewaehlteArmee === a.id;
+        const fp = sp.frontProvinzen(a);
+        // Frontlinie: Grenzboegen zwischen Frontprovinz und gegnerischer Provinz
+        c.lineCap = 'round'; c.lineJoin = 'round';
+        for (const v of versaetze){
+          c.beginPath();
+          for (const f of fp) for (const n of sp.prov[f].nb){
+            if (!sp.istFeindFuerFront(a.staat, sp.kontrolle[n])) continue;
+            for (const bi of this.paarBoegen.get(Math.min(f, n) + '|' + Math.max(f, n)) || []){
+              const b = k.boegen[bi];
+              for (let j = 0; j < b.length; j += 2){ const q = ort(b[j], b[j + 1], v); j ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); }
+            }
+          }
+          c.strokeStyle = 'rgba(0,0,0,.55)'; c.lineWidth = gewaehlt ? 9 : 7; c.stroke();
+          c.strokeStyle = gewaehlt ? '#ffd640' : '#3fb24f'; c.lineWidth = gewaehlt ? 5 : 3.5; c.stroke();
+        }
+        // Angriffspfeil
+        if (a.pfeil) for (const v of versaetze){
+          const pts = a.pfeil.punkte.map(([lon, lat]) => ort(lon, projY(lat), v));
+          c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = 12; c.beginPath(); pts.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); c.stroke();
+          c.strokeStyle = gewaehlt ? '#ffd640' : '#d9432f'; c.lineWidth = 7; c.stroke();
+          const n = pts.length; if (n >= 2) this.pfeil(c, pts[n - 2], pts[n - 1], c.strokeStyle, 22);
+        }
+        // Namensschild an der Front
+        if (fp.length) for (const v of versaetze){
+          const l = k.prov[fp[Math.floor(fp.length / 2)]].l, q = ort(l[0], l[1], v);
+          const text = `${a.name} (${sp.armeeEinheiten(a).length})`;
+          c.font = 'bold 12px system-ui, sans-serif'; const w = c.measureText(text).width;
+          c.fillStyle = gewaehlt ? '#ffd640' : 'rgba(20,24,28,.85)'; c.fillRect(q[0] - w / 2 - 5, q[1] - 34, w + 10, 17);
+          c.fillStyle = gewaehlt ? '#1b1a14' : '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, q[0], q[1] - 25.5);
+        }
+      }
     }
     stapel(){ // Provinz+Staat -> Einheiten
       const m = new Map();
@@ -32,6 +79,7 @@
       const B = k.cv.clientWidth, H = k.cv.clientHeight;
       this.treffer = [];
       const spieler = sp.spieler;
+      this.zeichneArmeen(c, ort, versaetze);
       const lp = id => k.prov[id].l;
       // 1. Marschwege der eigenen/ausgewaehlten Einheiten
       c.lineCap = 'round'; c.lineJoin = 'round';
@@ -98,7 +146,8 @@
     zaehlstein(c, x, y, bw, bh, us, tag){
       const k = this.karte, s = k.stil, st = k.staat(tag);
       const gewaehlt = us.some(u => this.auswahl.has(u.id));
-      const pz = us.some(u => u.typ === 'pz'), kav = !pz && us.every(u => u.typ === 'kav');
+      const pz = us.some(u => u.typ === 'pz'), kav = !pz && us.every(u => u.typ === 'kav'), art = !pz && us.some(u => u.typ === 'art');
+      const kessel = us.some(u => u.abgeschnitten >= 1);
       c.fillStyle = s.land(st.f); c.strokeStyle = gewaehlt ? '#ffd640' : '#15120d'; c.lineWidth = gewaehlt ? 2.5 : 1.2;
       c.fillRect(x, y, bw, bh); c.strokeRect(x, y, bw, bh);
       // Symbolfeld links
@@ -110,6 +159,8 @@
       else if (kav){ c.moveTo(sx, sy + sh); c.lineTo(sx + sw, sy); }
       else { c.moveTo(sx, sy); c.lineTo(sx + sw, sy + sh); c.moveTo(sx + sw, sy); c.lineTo(sx, sy + sh); }
       c.stroke();
+      if (art){ c.fillStyle = '#15120d'; c.beginPath(); c.arc(sx + sw / 2, sy + sh * 0.78, Math.max(1.5, sh * 0.13), 0, Math.PI * 2); c.fill(); }
+      if (kessel){ c.strokeStyle = '#ff3b2f'; c.lineWidth = 2.5; c.strokeRect(x - 2, y - 2, bw + 4, bh + 9); }
       // Anzahl
       c.fillStyle = '#15120d'; c.font = `bold ${Math.round(bh * 0.62)}px system-ui, sans-serif`;
       c.textAlign = 'center'; c.textBaseline = 'middle';

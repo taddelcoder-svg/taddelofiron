@@ -77,14 +77,27 @@
   <div class="balken"><span>Organisation</span><div><i id="eOrg"></i></div></div>
   <div class="balken"><span>Stärke</span><div><i id="eStaerke"></i></div></div>
   <p class="status" id="eStatus"></p>
+  <p class="klein" id="eVersorgung"></p>
+  <div id="eArmee" hidden>
+    <div class="armee-kopf"><b id="aName"></b><div class="klein" id="aGeneral"></div></div>
+    <div class="knoepfe">
+      <button id="aFront">Front ziehen</button>
+      <button id="aPfeil">Angriffspfeil</button>
+      <button id="aLoeschen">Front löschen</button>
+    </div>
+    <label class="haken"><input type="checkbox" id="aAuto"> Automatik: die KI führt diese Armee</label>
+  </div>
   <p class="hinweis" id="eHinweis"></p>
   <div class="knoepfe">
+    <button id="eArmeeBilden">Armee bilden</button>
+    <button id="aAufloesen">Armee auflösen</button>
     <button id="eHalt">Anhalten</button>
     <button id="eAlle">Alle meine Truppen</button>
   </div>
 </aside>
 
 <div id="meldungen" aria-live="polite"></div>
+<div id="zeichenHinweis" hidden></div>
 
 <aside id="wirtschaft" hidden>
   <button class="schliessen" id="wZu" aria-label="Schließen">×</button>
@@ -115,10 +128,11 @@
       <li><b>Zeit:</b> Leertaste = Pause, 1–5 = Tempo</li>
       <li><b>Krieg:</b> fremde Provinz antippen → „Krieg erklären“</li>
       <li><b>Automatik:</b> oben einschalten, dann führt die KI deine Truppen</li>
+      <li><b>Armeen:</b> Truppen wählen → „Armee bilden“, dann „Front ziehen“ (Linie entlang der Grenze) und „Angriffspfeil“ (Linie ins Feindesland)</li>
       <li><b>Wirtschaft:</b> P = Produktion, B = Bau, H = Heer · M = Kartenmodus</li>
       <li><b>Speichern:</b> Menü ≡ (Autosave jeden Spielmonat)</li>
     </ul>
-    <p class="klein">Version 0.3: Fabriken, Rohstoffe, Produktion, neue Divisionen und Speicherstände. Fronten und Versorgung folgen in 0.4. Am 1. Januar 1936 läuft schon der Krieg Italiens gegen Äthiopien.</p>
+    <p class="klein">Version 0.4: Armeen mit Generälen, Frontlinien und Angriffspfeile, Versorgung und Einkesselung, Winter und Schlamm, Artillerie. Rot umrandete Zählsteine sind eingekesselt. Am 1. Januar 1936 läuft schon der Krieg Italiens gegen Äthiopien.</p>
     <button id="hilfeZu" class="haupt">Verstanden</button>
   </div>
 </div>
@@ -128,6 +142,7 @@
 
 <script src="logik.js"></script>
 <script src="wirtschaft.js"></script>
+<script src="fronten.js"></script>
 <script src="speichern.js"></script>
 <script src="karte.js"></script>
 <script src="einheiten.js"></script>

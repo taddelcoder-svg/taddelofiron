@@ -9,7 +9,8 @@
   const TYPEN = {
     inf:{ n:'Infanterie', kurz:'Inf', angriff:6, verteidigung:14, org:40, tempo:4, panzerung:0, durchschlag:4 },
     kav:{ n:'Kavallerie', kurz:'Kav', angriff:7, verteidigung:10, org:35, tempo:6, panzerung:0, durchschlag:4 },
-    pz:{ n:'Panzer', kurz:'Pz', angriff:24, verteidigung:8, org:30, tempo:8, panzerung:30, durchschlag:30 }
+    pz:{ n:'Panzer', kurz:'Pz', angriff:24, verteidigung:8, org:30, tempo:8, panzerung:30, durchschlag:30 },
+    art:{ n:'Infanterie mit Artillerie', kurz:'Art', angriff:10, verteidigung:16, org:40, tempo:4, panzerung:0, durchschlag:8 }
   };
 
   // Gelaende: Angriffs-Faktor und Bewegungskosten
@@ -23,20 +24,20 @@
   // Streitkraefte 1936 (Divisionen, grob nach Hearts-of-Iron-Groessenordnung) und Qualitaet
   const ARMEEN = {
     GER:{ inf:26, pz:3, q:1.1 }, FRA:{ inf:38, kav:3, pz:2, q:0.95 }, ENG:{ inf:14, pz:1, q:1.0 }, RAJ:{ inf:10, kav:2, q:0.8 },
-    SOV:{ inf:62, kav:6, pz:4, q:0.9 }, ITA:{ inf:24, q:0.85 }, JAP:{ inf:22, q:1.05 }, CHI:{ inf:40, q:0.65 },
+    SOV:{ inf:62, kav:6, pz:4, q:0.85 }, ITA:{ inf:24, q:0.85 }, JAP:{ inf:22, q:1.05 }, CHI:{ inf:40, q:0.65 },
     USA:{ inf:8, q:0.95 }, POL:{ inf:28, kav:4, q:0.85 }, CZE:{ inf:18, pz:1, q:0.9 }, ROM:{ inf:18, kav:2, q:0.75 },
     YUG:{ inf:16, q:0.75 }, TUR:{ inf:16, q:0.8 }, SPA:{ inf:14, q:0.75 }, HUN:{ inf:7, q:0.85 }, BUL:{ inf:7, q:0.8 },
     GRE:{ inf:8, q:0.8 }, BEL:{ inf:10, q:0.9 }, HOL:{ inf:7, q:0.85 }, SWE:{ inf:7, q:0.9 }, SWI:{ inf:7, q:0.95 },
-    FIN:{ inf:8, q:1.0 }, AUT:{ inf:5, q:0.85 }, POR:{ inf:5, q:0.75 }, NOR:{ inf:4, q:0.85 }, DEN:{ inf:2, q:0.85 },
+    FIN:{ inf:10, q:1.05 }, AUT:{ inf:5, q:0.85 }, POR:{ inf:5, q:0.75 }, NOR:{ inf:4, q:0.85 }, DEN:{ inf:2, q:0.85 },
     MAN:{ inf:8, q:0.6 }, SIK:{ inf:5, q:0.55 }, YUN:{ inf:5, q:0.55 }, GXC:{ inf:6, q:0.6 }, XSM:{ inf:5, kav:2, q:0.55 },
-    SHX:{ inf:6, q:0.55 }, ETH:{ inf:10, q:0.5 }, BRA:{ inf:9, q:0.7 }, ARG:{ inf:7, q:0.75 }, CAN:{ inf:3, q:0.95 },
+    SHX:{ inf:6, q:0.55 }, ETH:{ inf:10, q:0.4 }, BRA:{ inf:9, q:0.7 }, ARG:{ inf:7, q:0.75 }, CAN:{ inf:3, q:0.95 },
     AST:{ inf:3, q:0.95 }, MEX:{ inf:6, q:0.65 }, IRN:{ inf:7, q:0.65 }, IRQ:{ inf:3, q:0.6 }, SAU:{ inf:3, kav:2, q:0.55 },
     EST:{ inf:3, q:0.85 }, LAT:{ inf:3, q:0.85 }, LIT:{ inf:3, q:0.85 }, ALB:{ inf:2, q:0.6 }, SIA:{ inf:5, q:0.65 },
     MON:{ inf:2, kav:3, q:0.6 }, AFG:{ inf:4, q:0.55 }, EGY:{ inf:3, q:0.6 }, IRE:{ inf:2, q:0.8 }, SAF:{ inf:3, q:0.9 },
     NZL:{ inf:1, q:0.95 }, CHL:{ inf:5, q:0.75 }, PRU:{ inf:4, q:0.65 }, COL:{ inf:3, q:0.65 }, VEN:{ inf:3, q:0.6 }
   };
   // Kriege, die am 1. Januar 1936 schon laufen (Abessinienkrieg) und Truppen dafuer
-  const START = { kriege:[['ITA', 'ETH']], aufmarsch:[{ staat:'ITA', gegen:'ETH', inf:10 }] };
+  const START = { kriege:[['ITA', 'ETH']], aufmarsch:[{ staat:'ITA', gegen:'ETH', inf:14 }] };
 
   // Kleiner Binaer-Heap fuer die Wegsuche
   class Heap {
@@ -65,7 +66,7 @@
 
   class Spiel {
     constructor(prov, welt, opt = {}){
-      this.prov = prov.map((p, i) => ({ id:i, l:p.l, nb:p.nb, a:p.a, t:p.t || 'ebene' }));
+      this.prov = prov.map((p, i) => ({ id:i, l:p.l, nb:p.nb, a:p.a, t:p.t || 'ebene', k:p.k || 0 }));
       this.nbKm = this.prov.map(p => p.nb.map(n => Math.max(40, distKm(p.l, this.prov[n].l))));
       this.staaten = {};
       for (const [tag, s] of Object.entries(welt.staaten)) this.staaten[tag] = { tag, n:s.n, hauptstadt:s.hauptstadt, oberherr:s.oberherr || null, kapituliert:false };
@@ -96,7 +97,8 @@
         kontrolle:this.kontrolle.slice(), besitz:this.besitz.slice(), kriege:[...this.kriege], staaten:st,
         einheiten:this.einheiten.map(u => ({ ...u, pfad:u.pfad.slice() })), naechsteId:this.naechsteId,
         festung:Array.from(this.festung), meldungen:this.meldungen.slice(-20),
-        wirtschaft:this.wirtschaftStand ? this.wirtschaftStand() : null
+        wirtschaft:this.wirtschaftStand ? this.wirtschaftStand() : null,
+        fronten:this.frontenStand ? this.frontenStand() : null
       };
     }
     ladeStand(d){
@@ -108,6 +110,8 @@
       this.einheiten = d.einheiten.map(u => ({ ...u, pfad:u.pfad.slice() })); this.naechsteId = d.naechsteId;
       this.festung = Int8Array.from(d.festung); this.meldungen = d.meldungen || [];
       if (d.wirtschaft && this.ladeWirtschaft) this.ladeWirtschaft(d.wirtschaft);
+      if (d.fronten && this.ladeFronten) this.ladeFronten(d.fronten);
+      if (this.wetterBerechnen) this.wetterBerechnen();
       this.aenderung = true;
     }
 
@@ -138,7 +142,7 @@
     einheitenIn(p){ return this.einheiten.filter(u => u.prov === p); }
     typ(u){ return TYPEN[u.typ]; }
     q(tag){ return (ARMEEN[tag] && ARMEEN[tag].q) || 0.7; }
-    kraft(u, wert){ const t = TYPEN[u.typ]; return t[wert] * this.q(u.staat) * (0.25 + 0.75 * u.staerke) * (0.25 + 0.75 * Math.max(0, u.org) / t.org); }
+    kraft(u, wert){ const t = TYPEN[u.typ]; return t[wert] * this.q(u.staat) * (0.25 + 0.75 * u.staerke) * (0.25 + 0.75 * Math.max(0, u.org) / t.org) * (this.kraftFaktor ? this.kraftFaktor(u, wert) : 1); }
 
     // ---------- Aufstellung ----------
     neueEinheit(staat, typ, prov){
@@ -209,13 +213,13 @@
         const s = this.staaten[tag]; if (s.kapituliert || !this.imKrieg(tag) || !kern[tag]) continue;
         const anteil = (gehalten[tag] || 0) / kern[tag];
         const hsWeg = !this.freund(this.kontrolle[s.hauptstadt], tag);
-        if (anteil <= 0.3 || (hsWeg && anteil <= 0.6)) this.kapitulation(tag);
+        if (anteil <= 0.3 || (hsWeg && anteil <= 0.5)) this.kapitulation(tag);
       }
     }
 
     // ---------- Befehle ----------
     betretbar(tag, p){ const k = this.kontrolle[p]; return this.freund(tag, k) || this.feind(tag, k); }
-    wegKosten(u, von, i){ const nach = this.prov[von].nb[i]; return this.nbKm[von][i] / TYPEN[u.typ].tempo * GELAENDE[this.prov[nach].t].weg / (0.9 + 0.05 * (this.infra ? this.infra[nach] : 2)); }
+    wegKosten(u, von, i){ const nach = this.prov[von].nb[i]; return this.nbKm[von][i] / TYPEN[u.typ].tempo * GELAENDE[this.prov[nach].t].weg / (0.9 + 0.05 * (this.infra ? this.infra[nach] : 2)) * (this.wetterFaktorWeg ? this.wetterFaktorWeg(nach) : 1); }
     weg(u, ziel){ // Dijkstra ueber freundliche und feindliche Provinzen
       if (ziel === u.prov) return [];
       if (!this.betretbar(u.staat, ziel)) return null;
@@ -242,7 +246,7 @@
       for (const u of this.einheiten){
         if (!ids.includes(u.id)) continue;
         const pfad = this.weg(u, ziel);
-        if (pfad){ u.pfad = pfad; u.fort = 0; ok++; }
+        if (pfad){ u.pfad = pfad; u.fort = 0; u.manuell = true; ok++; }
       }
       return ok;
     }
@@ -275,11 +279,13 @@
         }
       }
       for (const [p, angreifer] of kaempfe) this.kampf(p, angreifer);
-      if (this.stunde % 6 === 0) this.ki();
+      if (this.stunde % 24 === 0 && this.frontenTag) this.frontenTag();
+      if (this.stunde % 6 === 0){ if (this.armeenSchritt) this.armeenSchritt(); this.ki(); }
       if (this.stunde % 24 === 0){ this.pruefeKapitulation(); if (this.wirtschaftTag) this.wirtschaftTag(); }
     }
     erholen(u, f){
       const t = TYPEN[u.typ];
+      if (this.erholFaktor) f *= this.erholFaktor(u);
       u.org = Math.min(t.org, u.org + 1.2 * f);
       if (f >= 1 && !this.wirtschaftStart && this.freund(this.kontrolle[u.prov], u.staat)) u.staerke = Math.min(1, u.staerke + 0.002);
     }
@@ -298,7 +304,7 @@
       const verteidiger = this.einheiten.filter(v => v.prov === p && this.feind(seite, v.staat));
       if (!verteidiger.length) return;
       const summe = (l, w) => l.reduce((s, u) => s + this.kraft(u, w), 0);
-      let A = summe(angreifer, 'angriff') * GELAENDE[this.prov[p].t].angriff;
+      let A = summe(angreifer, 'angriff') * GELAENDE[this.prov[p].t].angriff * (this.winterFaktor ? this.winterFaktor(p, angreifer) : 1);
       let V = verteidiger.reduce((s, v) => s + this.kraft(v, 'verteidigung') * (1 + 0.3 * v.schanz), 0) * (1 + 0.15 * this.festung[p]);
       // Panzerung: wer mehr Panzerung hat als der Gegner Durchschlag, kaempft besser
       const mittel = (l, w) => l.reduce((s, u) => s + TYPEN[u.typ][w], 0) / l.length;
@@ -326,6 +332,7 @@
       for (const t of abbruch) if (t === this.spieler) this.meldung(`Angriff auf ${this.provName ? this.provName(p) : 'Provinz ' + p} abgebrochen: keine Organisation mehr.`);
     }
     vernichten(u, grund){
+      if (this.beiVernichtung) this.beiVernichtung(u, grund);
       this.einheiten = this.einheiten.filter(v => v !== u);
       if (this.verlust) this.verlust(u);
       if (u.staat === this.spieler) this.meldung(`Eine ${TYPEN[u.typ].n}division wurde ${grund}.`);
@@ -336,20 +343,46 @@
       const staaten = new Set();
       for (const k of this.kriege) for (const t of k.split('|')) if (t !== this.spieler || this.automatik) staaten.add(t);
       for (const tag of staaten) this.kiStaat(tag);
+      // Armeen des Spielers mit eigener Automatik
+      if (this.spieler && !this.automatik && this.armeen && this.imKrieg(this.spieler)){
+        const auto = new Set(this.armeen.filter(a => a.automatik && a.staat === this.spieler).map(a => a.id));
+        if (auto.size) this.kiStaat(this.spieler, this.einheiten.filter(u => auto.has(u.armee) && !(u.manuell && u.pfad.length)));
+      }
     }
-    kiStaat(tag){
-      const eigene = this.einheiten.filter(u => u.staat === tag);
+    kiStaat(tag, nur){
+      const eigene = nur || this.einheiten.filter(u => u.staat === tag);
       if (!eigene.length) return;
-      const feindKraft = p => this.einheiten.reduce((s, v) => v.prov === p && this.feind(tag, v.staat) ? s + this.kraft(v, 'verteidigung') : s, 0);
+      const feindKraft = p => this.einheiten.reduce((s, v) => v.prov === p && this.feind(tag, v.staat) ? s + this.kraft(v, 'verteidigung') * (1 + 0.3 * v.schanz) : s, 0) * (1 + 0.15 * this.festung[p]);
       const istFront = p => this.freund(this.kontrolle[p], tag) && this.prov[p].nb.some(n => this.feind(tag, this.kontrolle[n]));
+      // 0. Eingekesselte Einheiten brechen zur naechsten versorgten Provinz aus
+      const vers = this.versorgung && this.versorgung[tag];
+      if (vers) for (const u of eigene){
+        if (!u.abgeschnitten || u.kampf || (u.pfad.length && u.ausbruch)) continue;
+        let best = -1, bd = Infinity;
+        for (let p = 0; p < this.prov.length; p++){
+          if (!vers[p]) continue;
+          const d = distKm(this.prov[p].l, this.prov[u.prov].l); if (d < bd){ bd = d; best = p; }
+        }
+        if (best < 0) continue;
+        const pfad = this.weg(u, best);
+        if (pfad && pfad.length){ u.pfad = pfad; u.fort = 0; u.ausbruch = true; }
+      }
+      for (const u of eigene) if (u.ausbruch && !u.abgeschnitten) u.ausbruch = false;
       // 1. Angriffe aus Frontprovinzen
       const nachProv = new Map();
       for (const u of eigene) if (!u.pfad.length && u.org > this.typ(u).org * 0.6) (nachProv.get(u.prov) || nachProv.set(u.prov, []).get(u.prov)).push(u);
       for (const [p, us] of nachProv){
         const ziele = this.prov[p].nb.filter(n => this.feind(tag, this.kontrolle[n]));
         if (!ziele.length) continue;
-        let best = -1, bk = Infinity;
-        for (const z of ziele){ const k = feindKraft(z); if (k < bk){ bk = k; best = z; } }
+        let best = -1, bk = Infinity, bw = Infinity;
+        for (const z of ziele){
+          const k = feindKraft(z), gegner = this.staaten[this.kontrolle[z]];
+          const hsD = gegner ? distKm(this.prov[z].l, this.prov[gegner.hauptstadt].l) : 0;
+          // Wie viele eigene Provinzen grenzen an das Ziel? (Zangenbewegung)
+          const zange = this.prov[z].nb.filter(n => this.freund(this.kontrolle[n], tag)).length;
+          const wert = (k + 2) * (1 + hsD / 2500) / (1 + 0.35 * (zange - 1));
+          if (wert < bw){ bw = wert; bk = k; best = z; }
+        }
         const eigenA = us.reduce((s, u) => s + this.kraft(u, 'angriff'), 0);
         if (bk === 0 || eigenA * GELAENDE[this.prov[best].t].angriff / bk >= 1.6){
           const bleiben = us.length > 1 ? 1 : 0;
@@ -389,6 +422,6 @@
     }
   }
 
-  const api = { Spiel, TYPEN, ARMEEN, GELAENDE, distKm };
+  const api = { Spiel, TYPEN, ARMEEN, GELAENDE, distKm, Heap };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else global.EpochenLogik = api;
 })(typeof window !== 'undefined' ? window : globalThis);

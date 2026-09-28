@@ -11,7 +11,8 @@
   const ZF_JE_PROJEKT = 15;
   const WAREN = {
     ausruestung:{ n:'Infanterieausrüstung', kurz:'Ausrüstung', pp:0.5, roh:{ stahl:0.5 } },
-    panzer:{ n:'Panzer', kurz:'Panzer', pp:8, roh:{ stahl:1, oel:0.5, gummi:0.3 } }
+    panzer:{ n:'Panzer', kurz:'Panzer', pp:8, roh:{ stahl:1, oel:0.5, gummi:0.3 } },
+    artillerie:{ n:'Artillerie', kurz:'Artillerie', pp:3.5, roh:{ stahl:1 } }
   };
   const ROHSTOFFE = { stahl:'Stahl', oel:'Öl', gummi:'Gummi' };
   const BAUTEN = {
@@ -22,9 +23,10 @@
   };
   // Kosten einer neuen Division
   const AUSHEBUNG = {
-    inf:{ ausruestung:1000, panzer:0, mann:10000 },
-    kav:{ ausruestung:900, panzer:0, mann:8000 },
-    pz:{ ausruestung:400, panzer:150, mann:8000 }
+    inf:{ ausruestung:1000, panzer:0, artillerie:0, mann:10000 },
+    kav:{ ausruestung:900, panzer:0, artillerie:0, mann:8000 },
+    pz:{ ausruestung:400, panzer:150, artillerie:0, mann:8000 },
+    art:{ ausruestung:1000, panzer:0, artillerie:40, mann:11000 }
   };
   const AUSBILDUNG_TAGE = 30;
   const WEHRGESETZ = [null, { n:'Freiwillige', rate:0.01, kg:0 }, { n:'Wehrpflicht', rate:0.025, kg:0 }, { n:'Mobilmachung', rate:0.05, kg:0.1 }];
@@ -41,7 +43,7 @@
       this.wi = {};
       for (const tag in this.staaten){
         this.wi[tag] = {
-          lager:{ ausruestung:0, panzer:0 }, linien:[], bau:[], ausbildung:[],
+          lager:{ ausruestung:0, panzer:0, artillerie:0 }, linien:[], bau:[], ausbildung:[],
           wehrgesetz:(welt.staaten[tag] && welt.staaten[tag].wehrgesetz) || 1, eingezogen:0,
           bilanz:null, handel:true, ziel:0
         };
@@ -68,6 +70,7 @@
     ladeWirtschaft(d){
       this.zf = Float32Array.from(d.zf); this.mf = Float32Array.from(d.mf); this.infra = Int8Array.from(d.infra);
       this.wi = d.wi;
+      for (const t in this.wi) if (this.wi[t].lager.artillerie === undefined) this.wi[t].lager.artillerie = 0;
     },
 
     // ---------- Kennzahlen ----------
@@ -174,11 +177,14 @@
         let d = Math.min(0.05, 1 - u.staerke);
         if (kost.ausruestung) d = Math.min(d, w.lager.ausruestung / kost.ausruestung);
         if (kost.panzer) d = Math.min(d, w.lager.panzer / kost.panzer);
+        if (kost.artillerie) d = Math.min(d, (w.lager.artillerie || 0) / kost.artillerie);
+        if (u.abgeschnitten) continue;
         d = Math.min(d, mann / kost.mann);
         if (d <= 0.0005) continue;
         u.staerke += d;
         w.lager.ausruestung -= Math.ceil(d * kost.ausruestung);
         w.lager.panzer -= Math.ceil(d * kost.panzer);
+        if (kost.artillerie) w.lager.artillerie -= Math.ceil(d * kost.artillerie);
         const m = Math.round(d * kost.mann); w.eingezogen += m; mann -= m;
       }
       w.lager.ausruestung = Math.max(0, w.lager.ausruestung); w.lager.panzer = Math.max(0, w.lager.panzer);
@@ -190,6 +196,7 @@
       const w = this.wi[tag], kost = AUSHEBUNG[typ], k = this.kennzahlen(tag);
       if (w.lager.ausruestung < kost.ausruestung) return 'Zu wenig Ausrüstung';
       if (w.lager.panzer < kost.panzer) return 'Zu wenige Panzer';
+      if ((w.lager.artillerie || 0) < kost.artillerie) return 'Zu wenig Artillerie';
       if (k.mann < kost.mann) return 'Zu wenig Mannstärke';
       if (this.sammelplatz(tag) < 0) return 'Kein Sammelplatz';
       return null;
@@ -197,7 +204,7 @@
     ausheben(tag, typ){
       if (this.kannAusheben(tag, typ)) return false;
       const w = this.wi[tag], kost = AUSHEBUNG[typ];
-      w.lager.ausruestung -= kost.ausruestung; w.lager.panzer -= kost.panzer; w.eingezogen += kost.mann;
+      w.lager.ausruestung -= kost.ausruestung; w.lager.panzer -= kost.panzer; w.lager.artillerie = (w.lager.artillerie || 0) - kost.artillerie; w.eingezogen += kost.mann;
       w.ausbildung.push({ typ, tage:AUSBILDUNG_TAGE });
       return true;
     },
@@ -229,10 +236,11 @@
     kiLinien(tag){
       const w = this.wi[tag], k = this.kennzahlen(tag), mf = Math.floor(k.mf);
       const pz = (this.einheiten.some(u => u.staat === tag && u.typ === 'pz') || mf >= 10) && k.roh.oel + mf >= 8;
-      const nPz = pz ? Math.round(mf * 0.2) : 0;
+      const nPz = pz ? Math.round(mf * 0.2) : 0, nArt = mf >= 8 ? Math.round(mf * 0.15) : 0;
       w.linien = [];
-      if (mf - nPz > 0) w.linien.push({ ware:'ausruestung', mf:mf - nPz, eff:0.5, rest:0 });
+      if (mf - nPz - nArt > 0) w.linien.push({ ware:'ausruestung', mf:mf - nPz - nArt, eff:0.5, rest:0 });
       if (nPz > 0) w.linien.push({ ware:'panzer', mf:nPz, eff:0.5, rest:0 });
+      if (nArt > 0) w.linien.push({ ware:'artillerie', mf:nArt, eff:0.5, rest:0 });
     },
     kiWirtschaft(tag, k){
       const w = this.wi[tag], krieg = this.imKrieg(tag);
@@ -259,7 +267,8 @@
         if (!krieg && anz + n >= w.ziel) break;
         // Reserve fuer Verstaerkungen behalten
         if (w.lager.ausruestung < 1500) break;
-        const typ = !this.kannAusheben(tag, 'pz') && this.rnd() < 0.3 ? 'pz' : 'inf';
+        const r = this.rnd();
+        const typ = !this.kannAusheben(tag, 'pz') && r < 0.3 ? 'pz' : !this.kannAusheben(tag, 'art') && r < 0.7 ? 'art' : 'inf';
         if (!this.ausheben(tag, typ)) break;
       }
     }
