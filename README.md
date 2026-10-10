@@ -21,4 +21,6 @@ Dann `npm install` und `npm run karte`. Grenzen, Staaten und Namen für 1936 ste
 
 ## Lizenz
 
-Die Kartendaten enthalten Grenzschnitte aus historical-basemaps (GPL-3.0), deshalb steht das Projekt unter GPL-3.0.
+Die Kartendaten enthalten Grenzschnitte aus historical-basemaps (GPL-3.0), deshalb steht das Projekt unter GPL-3.0 (Volltext in [LICENSE](LICENSE)).
+
+Copyright © 2026 Matteo Kohler. Kartendaten: historical-basemaps © Aourednik u. a. (GPL-3.0), Natural Earth (gemeinfrei).
