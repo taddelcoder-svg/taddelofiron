@@ -481,6 +481,8 @@
   if (spielerTag) karte.fliegeZu(welt.staaten[spielerTag].hauptstadt, 9);
   else { karte.kamera.x = 15; karte.kamera.y = EpochenKarte.projY(50); karte.kamera.z = Math.max(6, innerWidth / 70); karte.begrenzen(); }
 
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { karte.schmutzig = true; });
+
   // Debug-Zugriff
   window.epochen = { karte, welt, prov, spiel, ansicht, wui, speichern:autosave, sim:h => { for (let i = 0; i < h; i++) spiel.schritt(); if (spiel.aenderung){ spiel.aenderung = false; karte.baueGrenzen(); } zeigeDatum(); aktualisierePanels(); karte.schmutzig = true; } };
 })();

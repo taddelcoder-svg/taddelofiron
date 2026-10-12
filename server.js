@@ -9,7 +9,7 @@ const zugang = require('./zugang')({ titel:'Epochen' });
 const PORT = Number(process.env.PORT) || 10500;
 const TYPEN = {
   '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8',
-  '.json':'application/json; charset=utf-8', '.svg':'image/svg+xml'
+  '.json':'application/json; charset=utf-8', '.svg':'image/svg+xml', '.woff2':'font/woff2', '.txt':'text/plain; charset=utf-8'
 };
 const OEFFENTLICH = path.join(__dirname, 'public');
 const DATEN = path.join(__dirname, 'daten');
@@ -45,7 +45,7 @@ const server = http.createServer((req, res) => {
   if (req.method !== 'GET'){ res.writeHead(405); return res.end(); }
   if (url.pathname === '/') return senden(req, res, path.join(OEFFENTLICH, 'index.html'), 'no-cache');
   // Spieldateien: nur einfache Namen aus public/
-  const datei = /^\/([\w-]+\.(?:js|css|html|svg))$/.exec(url.pathname);
+  const datei = /^\/([\w-]+\.(?:js|css|html|svg|woff2|txt))$/.exec(url.pathname);
   if (datei) return senden(req, res, path.join(OEFFENTLICH, datei[1]), 'no-cache');
   // Kartendaten: /daten/provinzen.json, /daten/epochen/1936/welt.json
   const daten = /^\/daten\/((?:epochen\/\d{1,4}\/)?[\w-]+\.json)$/.exec(url.pathname);

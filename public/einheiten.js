@@ -51,7 +51,7 @@
         if (fp.length) for (const v of versaetze){
           const l = k.prov[fp[Math.floor(fp.length / 2)]].l, q = ort(l[0], l[1], v);
           const text = `${a.name} (${sp.armeeEinheiten(a).length})`;
-          c.font = 'bold 12px system-ui, sans-serif'; const w = c.measureText(text).width;
+          c.font = 'bold 12px "Bricolage Grotesque", system-ui, sans-serif'; const w = c.measureText(text).width;
           c.fillStyle = gewaehlt ? '#ffd640' : 'rgba(20,24,28,.85)'; c.fillRect(q[0] - w / 2 - 5, q[1] - 34, w + 10, 17);
           c.fillStyle = gewaehlt ? '#1b1a14' : '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, q[0], q[1] - 25.5);
         }
@@ -107,7 +107,7 @@
         const gew = t.ids.some(i => this.auswahl.has(i));
         c.fillStyle = k.stil.land(k.staat(t.staat).f); c.strokeStyle = gew ? '#ffd640' : '#15120d'; c.lineWidth = gew ? 2.5 : 1.2;
         c.beginPath(); c.moveTo(x - 14, y - 6); c.lineTo(x + 10, y - 6); c.lineTo(x + 16, y); c.lineTo(x + 10, y + 6); c.lineTo(x - 14, y + 6); c.closePath(); c.fill(); c.stroke();
-        c.fillStyle = '#15120d'; c.font = 'bold 10px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillStyle = '#15120d'; c.font = 'bold 10px "Bricolage Grotesque", system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
         c.fillText((t.landung ? 'L ' : '') + t.ids.length, x, y + 0.5);
         this.treffer.push({ x0:x - 14, y0:y - 7, x1:x + 16, y1:y + 7, prov:-1, staat:t.staat, ids:t.ids });
       }
@@ -125,9 +125,9 @@
           const gew = this.flotteGewaehlt === f.id, n = L.schiffAnzahl(f), nurUb = f.schiffe.ub === n;
           c.fillStyle = k.stil.land(k.staat(f.staat).f); c.strokeStyle = gew ? '#ffd640' : '#15120d'; c.lineWidth = gew ? 2.5 : 1.3;
           c.beginPath(); c.moveTo(x - 20, y - 8); c.lineTo(x + 14, y - 8); c.lineTo(x + 21, y); c.lineTo(x + 14, y + 8); c.lineTo(x - 20, y + 8); c.closePath(); c.fill(); c.stroke();
-          c.fillStyle = '#15120d'; c.font = 'bold 11px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+          c.fillStyle = '#15120d'; c.font = 'bold 11px "Bricolage Grotesque", system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
           c.fillText((nurUb ? 'U ' : '') + n, x, y + 0.5);
-          if (f.auftrag === 'hafen'){ c.fillStyle = '#15120d'; c.font = 'bold 10px system-ui, sans-serif'; c.fillText('H', x - 26, y); }
+          if (f.auftrag === 'hafen'){ c.fillStyle = '#15120d'; c.font = 'bold 10px "Bricolage Grotesque", system-ui, sans-serif'; c.fillText('H', x - 26, y); }
           const hp = L.staerkeFlotte(f, 'hp'); if (f.schaden > 0 && hp){ c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(x - 20, y + 9, 41, 3); c.fillStyle = '#e0503a'; c.fillRect(x - 20, y + 9, 41 * Math.min(1, f.schaden / hp * 3), 3); }
           this.treffer.push({ x0:x - 20, y0:y - 9, x1:x + 21, y1:y + 12, prov:-1, staat:f.staat, flotte:f.id, ids:[] });
         });
@@ -229,7 +229,7 @@
       if (art){ c.fillStyle = '#15120d'; c.beginPath(); c.arc(sx + sw / 2, sy + sh * 0.78, Math.max(1.5, sh * 0.13), 0, Math.PI * 2); c.fill(); }
       if (kessel){ c.strokeStyle = '#ff3b2f'; c.lineWidth = 2.5; c.strokeRect(x - 2, y - 2, bw + 4, bh + 9); }
       // Anzahl
-      c.fillStyle = '#15120d'; c.font = `bold ${Math.round(bh * 0.62)}px system-ui, sans-serif`;
+      c.fillStyle = '#15120d'; c.font = `bold ${Math.round(bh * 0.62)}px "Bricolage Grotesque", system-ui, sans-serif`;
       c.textAlign = 'center'; c.textBaseline = 'middle';
       c.fillText(String(us.length), sx + sw + (x + bw - sx - sw) / 2, y + bh / 2 + 0.5);
       // Organisation (gruen) und Staerke (weiss) als Balken darunter
