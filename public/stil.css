@@ -1,6 +1,13 @@
+@font-face{font-family:"Bricolage Grotesque";src:url("bricolage-grotesque.woff2") format("woff2");font-weight:200 800;font-stretch:75% 100%;font-display:swap}
 :root{
   --chrom:#1b1f24; --chrom2:#262c33; --rand:#3a424c; --papier:#ece4cf; --leise:#a9b0b8; --akzent:#c9a24a; --rot:#b3261e;
-  --schrift:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"Courier New",Courier,monospace;
+  --schrift:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;
+  /* Design-Tokens */
+  --flaeche:#14171b; --karte:rgba(27,31,36,.9); --karte-fest:#1d2228; --text:#ece4cf; --text-weich:#b4bbc3;
+  --akzent-2:#e3c36e; --erfolg:#5cc86a; --warnung:#e6b93f; --gefahr:#e5584a;
+  --rand-fein:rgba(236,228,207,.12); --r:16px; --r-klein:10px;
+  --schatten:0 1px 2px rgba(0,0,0,.35),0 8px 24px rgba(0,0,0,.35),0 18px 48px rgba(0,0,0,.25);
+  --glas:rgba(24,28,33,.82); --ease:cubic-bezier(.2,.7,.2,1);
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--chrom);color:var(--papier);font:15px/1.45 var(--schrift);
@@ -152,4 +159,139 @@ button.krieg.sicher{background:#c0271d}
   #wirtschaft{left:8px;right:8px;top:auto;bottom:52px;width:auto;max-height:68%}
   #modusKnopf{padding:6px 8px}
   #panel{max-height:65%}
+}
+
+
+/* ===== Design-Upgrade: Schrift, Karten, Knöpfe, Leisten ===== */
+html,body{font-family:var(--schrift);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+b,strong{font-weight:650}
+button{font-weight:550;min-height:36px;border-radius:var(--r-klein);background:var(--karte-fest);border:1px solid var(--rand-fein);
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 1px 2px rgba(0,0,0,.3);
+  transition:background .15s,border-color .15s,transform .08s,box-shadow .15s}
+button:hover{background:#262c33;border-color:rgba(236,228,207,.3)}
+button:active{transform:translateY(1px) scale(.985);box-shadow:none}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--akzent-2);outline-offset:2px}
+button.haupt{background:linear-gradient(180deg,var(--akzent-2),var(--akzent));border-color:rgba(255,255,255,.25);color:#1b1a14;font-weight:700;
+  box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 4px 14px rgba(201,162,74,.28)}
+button.haupt:hover{background:linear-gradient(180deg,#ecd07f,#d3ac52)}
+button.krieg{background:linear-gradient(180deg,#9a251d,#7d1d17);border-color:rgba(255,120,100,.35);color:#fff}
+button.krieg:hover{background:linear-gradient(180deg,#b02b22,#8e211a)}
+button.krieg.sicher{background:linear-gradient(180deg,#e03226,#c0271d)}
+input[type=checkbox]{accent-color:var(--akzent);width:16px;height:16px}
+
+#leiste{gap:12px;background:var(--glas);border-bottom:1px solid var(--rand-fein);box-shadow:0 6px 24px rgba(0,0,0,.3);flex-wrap:nowrap;min-width:0}
+.marke{font-family:var(--schrift);font-weight:800;letter-spacing:.3em;font-size:14px;
+  background:linear-gradient(180deg,var(--akzent-2),var(--akzent));-webkit-background-clip:text;background-clip:text;color:transparent}
+.datum{font-family:var(--schrift);font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;border-radius:var(--r-klein);
+  background:rgba(0,0,0,.35);border:1px solid var(--rand-fein);padding:5px 12px;min-width:12.5em;text-align:center}
+.zeitknopf{width:36px;height:36px;border-radius:50%}
+.tempo{border-radius:var(--r-klein);border-color:var(--rand-fein);background:rgba(0,0,0,.25)}
+.tempo button{font-family:var(--schrift);font-variant-numeric:tabular-nums;font-weight:650;box-shadow:none;min-height:34px;min-width:30px;padding:4px 9px}
+.tempo button.an{background:linear-gradient(180deg,#f3ecd8,var(--papier))}
+.spieler{padding:3px 12px 3px 8px;border-radius:999px;background:rgba(0,0,0,.3);border:1px solid var(--rand-fein);color:var(--text);font-weight:600;white-space:nowrap}
+.spieler:empty{display:inline-flex;padding:5px 14px;border-color:rgba(227,195,110,.5);color:var(--akzent-2);animation:puls 2.4s ease-in-out infinite}
+.spieler:empty::before{content:"Wähle deine Nation: Provinz antippen"}
+.spieler .flagge{width:18px;height:18px;border-radius:50%}
+.umschalter{border-radius:var(--r-klein);border-color:var(--rand-fein);background:rgba(0,0,0,.25);flex:none}
+.umschalter button{box-shadow:none;min-height:34px;white-space:nowrap}
+.umschalter button.an,.reiter button.an,.segment button.an{background:linear-gradient(180deg,#f3ecd8,var(--papier));color:#1b1a14}
+#modusKnopf,#wirtschaftKnopf{white-space:nowrap}
+.rund{width:36px;height:36px;border-radius:50%;flex:none}
+.luecke{min-width:0}
+@keyframes puls{0%,100%{box-shadow:0 0 0 0 rgba(227,195,110,.0)}50%{box-shadow:0 0 0 5px rgba(227,195,110,.16)}}
+
+#ressourcen{background:var(--glas);border-bottom:1px solid var(--rand-fein);gap:4px 10px;padding:5px 14px}
+#ressourcen .feld{background:rgba(255,255,255,.05);border:1px solid var(--rand-fein);border-radius:999px;padding:1px 10px;white-space:nowrap}
+#ressourcen .feld b{color:var(--text-weich)}
+#ressourcen .mangel{color:#ff9a84}
+#ressourcen .import{color:#a9d6ff}
+
+#panel,#einheitPanel,#flottePanel,#wirtschaft{border-radius:var(--r);box-shadow:var(--schatten);border:1px solid var(--rand-fein);
+  background:var(--karte);animation:ein .22s var(--ease) both}
+#einheitPanel{border-color:rgba(201,162,74,.4)}
+#flottePanel{border-color:rgba(100,170,220,.45)}
+#panel h2,#einheitPanel h2,#flottePanel h2{font-weight:750;letter-spacing:-.01em}
+.panel-kopf{padding-bottom:12px;border-bottom:1px solid var(--rand-fein)}
+.flagge{border-radius:6px;border:1px solid rgba(255,255,255,.18);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.klein{color:var(--text-weich)}
+.schliessen{width:34px;height:34px;min-height:0;box-shadow:none;background:rgba(255,255,255,.05);border-color:transparent}
+.schliessen:hover{background:rgba(255,255,255,.14)}
+.werte{margin:12px 0;gap:6px 14px}
+.werte dt{color:var(--text-weich)}
+.werte dd{font-weight:550}
+.bauen button{min-height:32px}
+.knoepfe{gap:8px}
+#wirtschaft h3{font-weight:700;letter-spacing:.02em;text-transform:uppercase;font-size:12px;margin:18px 0 6px}
+.reiter button{box-shadow:none}
+.linie,.projekt,.platz{border-bottom:1px solid var(--rand-fein)}
+.zaehler button{min-height:32px}
+.fort,.balken div{background:rgba(0,0,0,.45);border-radius:999px;box-shadow:0 1px 2px rgba(0,0,0,.4) inset}
+.fort{height:8px}
+.fort i{background:linear-gradient(90deg,var(--akzent),var(--akzent-2));border-radius:999px}
+.balken{grid-template-columns:100px 1fr;color:var(--text-weich)}
+.balken div{height:10px}
+.balken i{background:linear-gradient(90deg,#3aa84a,#6fdc7b);border-radius:999px;transition:width .3s var(--ease)}
+#eStaerke{background:linear-gradient(90deg,#c9c9c9,#f4f4f4)}
+.hinweis{color:var(--akzent-2)}
+.segment button{box-shadow:none}
+.aushebung button{min-height:44px}
+table.roh th{color:var(--text-weich);font-weight:500}
+
+#tipp{background:rgba(16,18,22,.94);border:1px solid var(--rand-fein);border-radius:var(--r-klein);padding:6px 12px;font-weight:550;
+  box-shadow:0 8px 24px rgba(0,0,0,.45);animation:ein .12s var(--ease) both}
+#meldungen div{background:var(--glas);border:1px solid var(--rand-fein);border-left:3px solid var(--text-weich);border-radius:var(--r-klein);padding:6px 12px;
+  box-shadow:0 4px 16px rgba(0,0,0,.35);font-size:13px;animation:ein .25s var(--ease) backwards}
+#meldungen div.wichtig{border-color:var(--rand-fein);border-left-color:var(--akzent-2);background:rgba(40,34,18,.88)}
+#meldungen div .klein{font-family:var(--schrift);font-variant-numeric:tabular-nums;font-weight:600}
+#zeichenHinweis{border-radius:999px;box-shadow:var(--schatten);padding:9px 18px}
+
+.dialog,#hilfe{background:rgba(6,8,10,.62);animation:blende .2s ease both}
+.dialog-karte,.hilfe-karte{background:var(--karte-fest);border:1px solid var(--rand-fein);border-radius:20px;box-shadow:var(--schatten);
+  padding:24px;animation:ein .26s var(--ease) both}
+.dialog-karte h2,.hilfe-karte h2{font-family:var(--schrift);font-weight:800;letter-spacing:-.01em;font-size:22px;margin:0 0 16px}
+.dialog-karte h2::after,.hilfe-karte h2::after{content:"";display:block;width:36px;height:3px;border-radius:2px;margin-top:8px;background:linear-gradient(90deg,var(--akzent),var(--akzent-2))}
+.hilfe-karte{width:min(520px,100%);max-height:calc(100% - 32px);overflow:auto}
+.hilfe-karte ul{padding-left:0;list-style:none;margin:0 0 16px}
+.hilfe-karte li{margin:0;padding:7px 0;border-bottom:1px solid var(--rand-fein)}
+.hilfe-karte li:last-child{border-bottom:0}
+.hilfe-karte .haupt{width:100%;min-height:46px}
+.platz{padding:10px 0}
+#menueZu{min-height:44px}
+#menueInhalt .knoepfe button{min-height:40px}
+
+#laden{font-family:var(--schrift);font-weight:600;letter-spacing:.04em;color:var(--akzent-2);flex-direction:column;gap:14px;
+  background:radial-gradient(ellipse at 50% 40%,#262c33,var(--flaeche))}
+#laden::before{content:"EPOCHEN";font-weight:800;letter-spacing:.4em;font-size:28px;color:var(--text)}
+#dsLink{color:var(--text-weich);text-shadow:none;background:var(--glas);padding:2px 8px;border-radius:999px}
+
+@keyframes ein{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes blende{from{opacity:0}to{opacity:1}}
+
+@media (max-width:1500px){.dufuehrst{display:none}#leiste{gap:8px}}
+@media (max-width:1400px){.marke{display:none}}
+@media (max-width:1180px){.datum{min-width:0}.auto{display:none}}
+@media (pointer:coarse){
+  button{min-height:44px}
+  .zeitknopf,.rund{width:44px;height:44px}
+  .tempo button{min-height:42px;min-width:40px}
+  .umschalter button{min-height:42px}
+  .zaehler button{min-height:44px;min-width:44px}
+  .schliessen{width:44px;height:44px}
+  .bauen button{min-height:44px}
+}
+@media (max-width:700px){
+  #leiste{flex-wrap:wrap;gap:6px 8px}
+  .spieler:empty{display:inline-flex}
+  .spieler:empty::before{content:"Nation wählen: Provinz antippen"}
+  .datum{min-width:0;padding:5px 8px}
+  #meldungen{top:176px;left:8px}
+  #ressourcen{padding:4px 8px}
+  .dialog-karte,.hilfe-karte{padding:18px}
+}
+@media (max-width:700px) and (pointer:coarse){
+  .zeitknopf,.rund{width:40px;height:40px}
+  #modusKnopf,#wirtschaftKnopf{min-height:40px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
 }

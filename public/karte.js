@@ -25,7 +25,7 @@
     flach:{
       name:'Lesbar', meer:'#2c5a84', gitter:null, land:f => f,
       kueste:'#10202e', kuesteB:1, seeGrenze:'rgba(255,255,255,.16)', seeText:'rgba(220,235,255,.55)', grenze:'#0b0b0b', grenzeB:1.8, prov:'rgba(0,0,0,.22)', provB:.6,
-      schrift:'system-ui, "Segoe UI", Arial, sans-serif', text:'#ffffff', textRand:'rgba(0,0,0,.7)', gross:true,
+      schrift:'"Bricolage Grotesque", system-ui, "Segoe UI", Arial, sans-serif', text:'#ffffff', textRand:'rgba(0,0,0,.7)', gross:true,
       hover:'rgba(255,255,255,.3)', wahl:'#ffd23f'
     }
   };
